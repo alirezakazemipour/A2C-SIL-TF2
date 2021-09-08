@@ -8,22 +8,24 @@ from tqdm import tqdm
 import time
 from test_policy import evaluate_policy
 from play import Play
+import tensorflow as tf
 
 env_name = "PongNoFrameskip-v4"
 test_env = gym.make(env_name)
 n_actions = test_env.action_space.n
-n_workers = os.cpu_count()
+n_workers = 2
 state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 10
 T = 80 // n_workers
 lr = 7e-4
-LOAD_FROM_CKP = True
+LOAD_FROM_CKP = False
 Train = True
 
 
 if __name__ == '__main__':
     set_start_method("spawn")
+    writer = tf.summary.create_file_writer(env_name + "/logs")
     brain = Brain(state_shape, n_actions, n_workers, lr)
     if Train:
         if LOAD_FROM_CKP:
@@ -91,12 +93,13 @@ if __name__ == '__main__':
                       f"Iter_duration: {time.time() - start_time:.3f}| ")
                 brain.save_params(iteration, running_reward)
 
-            # with tf.summary.SummaryWriter(env_name + "/logs") as writer:
-            #     writer.add_scalar("running reward", running_reward, iteration)
-            #     writer.add_scalar("episode reward", episode_reward, iteration)
-            #     writer.add_scalar("explained variance", ev, iteration)
-            #     writer.add_scalar("loss", total_loss, iteration)
-            #     writer.add_scalar("entropy", entropy, iteration)
+            with writer.as_default():
+                tf.summary.scalar("running reward", running_reward, iteration)
+                tf.summary.scalar("episode reward", episode_reward, iteration)
+                tf.summary.scalar("explained variance", ev, iteration)
+                tf.summary.scalar("loss", total_loss, iteration)
+                tf.summary.scalar("entropy", entropy, iteration)
+                writer.flush()
     else:
         play = Play(env_name, brain)
         play.evaluate()
