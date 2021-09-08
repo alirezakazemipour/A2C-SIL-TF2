@@ -30,7 +30,7 @@ class Worker(Process):
         print(f"W: {self.id} started.")
         while True:
             self.conn.send(self._stacked_states)
-            self.render()
+            # self.render()
             action = self.conn.recv()
             next_state, r, d, info = self.env.step(action)
             # if self.lives > info["ale.lives"]:

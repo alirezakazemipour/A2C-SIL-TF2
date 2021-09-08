@@ -20,7 +20,7 @@ class NN(Model, ABC):
         self.policy = Dense(units=self.n_actions, activation="softmax")
 
     def call(self, x, training=None, mask=None):
-        x = x / 255.
+        x = x / 255
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)

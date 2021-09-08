@@ -12,7 +12,7 @@ from play import Play
 env_name = "BreakoutNoFrameskip-v4"
 test_env = gym.make(env_name)
 n_actions = test_env.action_space.n
-n_workers = 1
+n_workers = 2
 state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 50
@@ -42,7 +42,7 @@ if __name__ == '__main__':
             w = Worker(i, state_shape, env_name, child_conn)
             w.start()
 
-        for iteration in range(init_iteration + 1, iterations + 1):
+        for iteration in tqdm(range(init_iteration + 1, iterations + 1)):
             start_time = time.time()
             total_states = np.zeros((n_workers, T,) + state_shape)
             total_actions = np.zeros((n_workers, T))
@@ -52,7 +52,7 @@ if __name__ == '__main__':
             next_states = np.zeros((n_workers,) + state_shape)
             next_values = np.zeros(n_workers)
 
-            for t in tqdm(range(T)):
+            for t in range(T):
                 for worker_id, parent in enumerate(parents):
                     s = parent.recv()
                     total_states[worker_id, t] = s
@@ -69,7 +69,7 @@ if __name__ == '__main__':
                     total_rewards[worker_id, t] = r
                     total_dones[worker_id, t] = d
                     next_states[worker_id] = s_
-            _, next_values, _ = brain.get_actions_and_values(next_states, batch=True)
+            _, next_values = brain.get_actions_and_values(next_states, batch=True)
 
             # total_states = total_states.reshape((n_workers * T,) + state_shape)
             # total_actions = total_actions.reshape(n_workers * T)
@@ -98,12 +98,12 @@ if __name__ == '__main__':
                       f"Clip_range:{brain.epsilon:.3f}")
                 # brain.save_params(iteration, running_reward)
 
-            with tf.summary.SummaryWriter(env_name + "/logs") as writer:
-                writer.add_scalar("running reward", running_reward, iteration)
-                writer.add_scalar("episode reward", episode_reward, iteration)
-                writer.add_scalar("explained variance", ev, iteration)
-                writer.add_scalar("loss", total_loss, iteration)
-                writer.add_scalar("entropy", entropy, iteration)
+            # with tf.summary.SummaryWriter(env_name + "/logs") as writer:
+            #     writer.add_scalar("running reward", running_reward, iteration)
+            #     writer.add_scalar("episode reward", episode_reward, iteration)
+            #     writer.add_scalar("explained variance", ev, iteration)
+            #     writer.add_scalar("loss", total_loss, iteration)
+            #     writer.add_scalar("entropy", entropy, iteration)
     else:
         play = Play(env_name, brain)
         play.evaluate()

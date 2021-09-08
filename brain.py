@@ -56,11 +56,11 @@ class Brain:
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
             dist, value = self.current_policy(state)
-            entropy = dist.entropy().mean()
+            entropy = tf.reduce_mean(dist.entropy())
             new_log_prob = dist.log_prob(action)
-            actor_loss = -(new_log_prob * adv).mean()
+            actor_loss = -tf.reduce_mean(new_log_prob * adv)
 
-            critic_loss = (0.5 * (q_value - value) ** 2).mean()
+            critic_loss = tf.reduce_mean(0.5 * (q_value - value) ** 2)
 
             total_loss = critic_loss + actor_loss - 0.01 * entropy
 
@@ -73,7 +73,7 @@ class Brain:
 
         returns = [[] for _ in range(self.n_workers)]
         for worker in range(self.n_workers):
-            R = next_values[worker]
+            R = next_values[worker] if not isinstance(next_values, float) else next_values
             for step in reversed(range(len(rewards[worker]))):
                 R = rewards[worker][step] + gamma * R * (1 - dones[worker][step])
                 returns[worker].insert(0, R)
