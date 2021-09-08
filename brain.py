@@ -6,22 +6,13 @@ import tensorflow as tf
 
 
 class Brain:
-    def __init__(self, state_shape, n_actions, n_workers, epochs, n_iters, epsilon, lr):
+    def __init__(self, state_shape, n_actions, n_workers, lr):
         self.state_shape = state_shape
         self.n_actions = n_actions
         self.n_workers = n_workers
-        self.mini_batch_size = 32
-        self.epochs = epochs
-        self.n_iters = n_iters
-        self.initial_epsilon = epsilon
-        self.epsilon = self.initial_epsilon
         self.lr = lr
 
         self.current_policy = NN(self.n_actions)
-        # self.current_policy.build((None, *self.state_shape))
-        # self.current_policy.summary()
-        # exit()
-
         self.optimizer = Adam(learning_rate=self.lr, epsilon=1e-5)
 
     @tf.function
@@ -36,23 +27,15 @@ class Brain:
         a, v = self.feedforward_model(state)
         return a.numpy(), v.numpy().squeeze()
 
-    def choose_mini_batch(self, states, actions, returns, advs):
-        for worker in range(self.n_workers):
-            idxes = np.random.randint(0, states.shape[1], self.mini_batch_size)
-            yield states[worker][idxes], actions[worker][idxes], returns[worker][idxes], advs[worker][idxes]
-
     def train(self, states, actions, rewards, dones, values, next_values):
         returns = self.get_returns(rewards, next_values, dones).astype("float32")
-        values = np.vstack(values)  # .reshape((len(values[0]) * self.n_workers,))
+        values = np.vstack(values)
         advs = returns - values
-        advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-8)
-        for epoch in range(self.epochs):
-            for state, action, q_value, adv in self.choose_mini_batch(states, actions, returns, advs.astype("float32")):
-                total_loss, entropy = self.optimize(state, action, q_value, adv)
+        advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-6)
 
-        return total_loss.numpy(), entropy.numpy(),\
-               explained_variance(values.reshape((len(returns[0]) * self.n_workers,)),
-               returns.reshape((len(returns[0]) * self.n_workers,)))
+        total_loss, entropy = self.optimize(states, actions, np.hstack(returns), np.hstack(advs).astype("float32"))
+
+        return total_loss.numpy(), entropy.numpy(), explained_variance(np.hstack(values), np.hstack(returns))
 
     @tf.function
     def optimize(self, state, action, q_value, adv):
@@ -80,7 +63,7 @@ class Brain:
                 R = rewards[worker][step] + gamma * R * (1 - dones[worker][step])
                 returns[worker].insert(0, R)
 
-        return np.vstack(returns)  # .reshape((len(returns[0]) * self.n_workers,))
+        return np.vstack(returns)
 
 
     # def save_params(self, iteration, running_reward):
@@ -102,4 +85,3 @@ class Brain:
     #     self.epsilon = checkpoint["clip_range"]
     #
     #     return running_reward, iteration
-

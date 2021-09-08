@@ -16,17 +16,15 @@ n_workers = os.cpu_count()
 state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 50
-T = 128
-epochs = 3
+T = 80 // n_workers
 lr = 2.5e-4
-clip_range = 0.1
 LOAD_FROM_CKP = False
 Train = True
 
 
 if __name__ == '__main__':
     set_start_method("spawn")
-    brain = Brain(state_shape, n_actions, n_workers, epochs, iterations, clip_range, lr)
+    brain = Brain(state_shape, n_actions, n_workers, lr)
     if Train:
         if LOAD_FROM_CKP:
             # running_reward, init_iteration = brain.load_params()
@@ -56,11 +54,9 @@ if __name__ == '__main__':
                 for worker_id, parent in enumerate(parents):
                     s = parent.recv()
                     total_states[worker_id, t] = s
-                    # print(s.shape)
 
-                total_actions[:, t], total_values[:, t] =\
-                    brain.get_actions_and_values(total_states[:, t], batch=True)
-                # print(total_actions[:, t])
+                total_actions[:, t], total_values[:, t] = brain.get_actions_and_values(total_states[:, t], batch=True)
+
                 for parent, a in zip(parents, total_actions[:, t]):
                     parent.send(int(a))
 
@@ -71,13 +67,13 @@ if __name__ == '__main__':
                     next_states[worker_id] = s_
             _, next_values = brain.get_actions_and_values(next_states, batch=True)
 
-            # total_states = total_states.reshape((n_workers * T,) + state_shape)
-            # total_actions = total_actions.reshape(n_workers * T)
+            total_states = np.concatenate(total_states)
+            total_actions = np.concatenate(total_actions)
 
             # Calculates if value function is a good predictor of the returns (ev > 1)
             # or if it's just worse than predicting nothing (ev =< 0)
-            total_loss, entropy, ev = brain.train(total_states, total_actions, total_rewards,
-                                              total_dones, total_values, next_values)
+            total_loss, entropy, ev = brain.train(total_states, total_actions, total_rewards, total_dones, total_values,
+                                                  next_values)
 
             episode_reward = evaluate_policy(env_name, brain, state_shape)
 
