@@ -5,14 +5,14 @@ from brain import Brain
 import gym
 from tqdm import tqdm
 import time
-import tensorflow as tf
 from test_policy import evaluate_policy
 from play import Play
+import os
 
 env_name = "BreakoutNoFrameskip-v4"
 test_env = gym.make(env_name)
 n_actions = test_env.action_space.n
-n_workers = 2
+n_workers = os.cpu_count()
 state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 50

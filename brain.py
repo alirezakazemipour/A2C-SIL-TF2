@@ -24,16 +24,17 @@ class Brain:
 
         self.optimizer = Adam(learning_rate=self.lr, epsilon=1e-5)
 
-    # @tf.function
+    @tf.function
     def feedforward_model(self, x):
-        return self.current_policy(x)
+        dist, value = self.current_policy(x)
+        action = dist.sample()
+        return action, value
 
     def get_actions_and_values(self, state, batch=False):
         if not batch:
             state = np.expand_dims(state, 0)
-        dist, value = self.feedforward_model(state)
-        action = dist.sample()
-        return action.numpy(), value.numpy().squeeze()
+        a, v = self.feedforward_model(state)
+        return a.numpy(), v.numpy().squeeze()
 
     def choose_mini_batch(self, states, actions, returns, advs):
         for worker in range(self.n_workers):
@@ -41,18 +42,19 @@ class Brain:
             yield states[worker][idxes], actions[worker][idxes], returns[worker][idxes], advs[worker][idxes]
 
     def train(self, states, actions, rewards, dones, values, next_values):
-        returns = self.get_returns(rewards, next_values, dones)
+        returns = self.get_returns(rewards, next_values, dones).astype("float32")
         values = np.vstack(values)  # .reshape((len(values[0]) * self.n_workers,))
         advs = returns - values
         advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-8)
         for epoch in range(self.epochs):
-            for state, action, q_value, adv in self.choose_mini_batch(states, actions, returns, advs):
-                total_loss, entropy = self.optimize(state, action, q_value, adv )
+            for state, action, q_value, adv in self.choose_mini_batch(states, actions, returns, advs.astype("float32")):
+                total_loss, entropy = self.optimize(state, action, q_value, adv)
 
-        return total_loss, entropy, explained_variance(values.reshape((len(returns[0]) * self.n_workers,)), \
-                                    returns.reshape((len(returns[0]) * self.n_workers,)))
+        return total_loss.numpy(), entropy.numpy(),\
+               explained_variance(values.reshape((len(returns[0]) * self.n_workers,)),
+               returns.reshape((len(returns[0]) * self.n_workers,)))
 
-    # @tf.function
+    @tf.function
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
             dist, value = self.current_policy(state)
@@ -67,7 +69,7 @@ class Brain:
         grads = tape.gradient(total_loss, self.current_policy.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.current_policy.trainable_variables))
 
-        return total_loss.numpy(), entropy.numpy()
+        return total_loss, entropy
 
     def get_returns(self, rewards, next_values, dones, gamma=0.99):
 
