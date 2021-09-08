@@ -1,3 +1,4 @@
+import os
 from runner import Worker
 from multiprocessing import Pipe, set_start_method
 import numpy as np
@@ -7,7 +8,6 @@ from tqdm import tqdm
 import time
 from test_policy import evaluate_policy
 from play import Play
-import os
 
 env_name = "PongNoFrameskip-v4"
 test_env = gym.make(env_name)
@@ -15,10 +15,10 @@ n_actions = test_env.action_space.n
 n_workers = os.cpu_count()
 state_shape = (84, 84, 4)
 iterations = int(2e4)
-log_period = 50
+log_period = 10
 T = 80 // n_workers
 lr = 7e-4
-LOAD_FROM_CKP = False
+LOAD_FROM_CKP = True
 Train = True
 
 
@@ -27,8 +27,7 @@ if __name__ == '__main__':
     brain = Brain(state_shape, n_actions, n_workers, lr)
     if Train:
         if LOAD_FROM_CKP:
-            # running_reward, init_iteration = brain.load_params()
-            pass
+            running_reward, init_iteration = brain.load_params()
         else:
             init_iteration = 0
             running_reward = 0
@@ -90,7 +89,7 @@ if __name__ == '__main__':
                       f"Explained variance:{ev:.3f}| "
                       f"Entropy: {entropy:.3f}| "
                       f"Iter_duration: {time.time() - start_time:.3f}| ")
-                # brain.save_params(iteration, running_reward)
+                brain.save_params(iteration, running_reward)
 
             # with tf.summary.SummaryWriter(env_name + "/logs") as writer:
             #     writer.add_scalar("running reward", running_reward, iteration)

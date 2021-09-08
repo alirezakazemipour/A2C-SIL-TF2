@@ -3,6 +3,7 @@ import numpy as np
 from utils import explained_variance
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
+import json
 
 
 class Brain:
@@ -66,23 +67,17 @@ class Brain:
 
         return np.vstack(returns)
 
+    def save_params(self, iteration, running_reward):
+        self.current_policy.save_weights("weights.h5", save_format="h5")
+        stats_to_write = {"iteration": iteration, "running_reward": running_reward}
+        with open("stats.json", "w") as f:
+            f.write(json.dumps(stats_to_write))
+            f.flush()
 
-    # def save_params(self, iteration, running_reward):
-    #     torch.save({"current_policy_state_dict": self.current_policy.state_dict(),
-    #                 "optimizer_state_dict": self.optimizer.state_dict(),
-    #                 "scheduler_state_dict": self.scheduler.state_dict(),
-    #                 "iteration": iteration,
-    #                 "running_reward": running_reward,
-    #                 "clip_range": self.epsilon},
-    #                "params.pth")
-    #
-    # def load_params(self):
-    #     checkpoint = torch.load("params.pth", map_location=self.device)
-    #     self.current_policy.load_state_dict(checkpoint["current_policy_state_dict"])
-    #     self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-    #     self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    #     iteration = checkpoint["iteration"]
-    #     running_reward = checkpoint["running_reward"]
-    #     self.epsilon = checkpoint["clip_range"]
-    #
-    #     return running_reward, iteration
+    def load_params(self):
+        self.current_policy.build((None, *self.state_shape))
+        self.current_policy.load_weights("weights.h5")
+        with open("stats.json", "r") as f:
+            stats = json.load(f)
+
+        return stats["running_reward"], stats["iteration"]
