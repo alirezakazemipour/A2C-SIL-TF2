@@ -13,7 +13,7 @@ import tensorflow as tf
 env_name = "PongNoFrameskip-v4"
 test_env = gym.make(env_name)
 n_actions = test_env.action_space.n
-n_workers = 2
+n_workers = os.cpu_count()
 state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 25
@@ -73,10 +73,10 @@ if __name__ == '__main__':
 
             # Calculates if value function is a good predictor of the returns (ev > 1)
             # or if it's just worse than predicting nothing (ev =< 0)
-            total_loss, entropy, ev = brain.train(total_states, total_actions, total_rewards, total_dones, total_values,
+            total_loss, entropy, ev, g_norm = brain.train(total_states, total_actions, total_rewards, total_dones, total_values,
                                                   next_values)
 
-            episode_reward = evaluate_policy(env_name, brain, state_shape)
+            episode_reward, step = evaluate_policy(env_name, brain, state_shape)
 
             if iteration == 1:
                 running_reward = episode_reward
@@ -87,6 +87,8 @@ if __name__ == '__main__':
                 print(f"Iter: {iteration}| "
                       f"Ep_reward: {episode_reward:.3f}| "
                       f"Running_reward: {running_reward:.3f}| "
+                      f"step: {step}| "
+                      f"g_norm: {g_norm:.3f}| "
                       f"Total_loss: {total_loss:.3f}| "
                       f"Explained variance:{ev:.3f}| "
                       f"Entropy: {entropy:.3f}| "

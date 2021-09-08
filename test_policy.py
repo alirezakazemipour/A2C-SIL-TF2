@@ -10,10 +10,12 @@ def evaluate_policy(env_name, agent, state_shape):
     stacked_states = stack_states(stacked_states, s, True)
     episode_reward = 0
     done = False
+    step = 0
     while not done:
+        step += 1
         action, _ = agent.get_actions_and_values(stacked_states)
         next_s, r, done, _ = env.step(action)
         stacked_states = stack_states(stacked_states, next_s, False)
         episode_reward += np.sign(r)
     env.close()
-    return episode_reward
+    return episode_reward, step

@@ -32,11 +32,10 @@ class Brain:
         returns = self.get_returns(rewards, next_values, dones).astype("float32")
         values = np.vstack(values)
         advs = returns - values
-        advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-8)
 
-        total_loss, entropy = self.optimize(states, actions, np.hstack(returns), np.hstack(advs).astype("float32"))
+        total_loss, entropy, g_norm = self.optimize(states, actions, np.hstack(returns), np.hstack(advs).astype("float32"))
 
-        return total_loss.numpy(), entropy.numpy(), explained_variance(np.hstack(values), np.hstack(returns))
+        return total_loss.numpy(), entropy.numpy(), explained_variance(np.hstack(values), np.hstack(returns)), g_norm
 
     @tf.function
     def optimize(self, state, action, q_value, adv):
@@ -48,13 +47,13 @@ class Brain:
 
             critic_loss = tf.reduce_mean(0.5 * (q_value - tf.squeeze(value, axis=-1)) ** 2)
 
-            total_loss = 0.5 * critic_loss + actor_loss - 0.01 * entropy
+            total_loss = critic_loss + actor_loss - 0.01 * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, 0.5)
         self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
 
-        return total_loss, entropy
+        return total_loss, entropy, grad_norm
 
     def get_returns(self, rewards, next_values, dones, gamma=0.99):
 
