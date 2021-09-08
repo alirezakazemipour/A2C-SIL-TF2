@@ -13,12 +13,12 @@ class Brain:
         self.n_workers = n_workers
         self.lr = lr
 
-        self.current_policy = NN(self.n_actions)
+        self.policy = NN(self.n_actions)
         self.optimizer = Adam(learning_rate=self.lr, epsilon=1e-5)
 
     @tf.function
     def feedforward_model(self, x):
-        dist, value = self.current_policy(x)
+        dist, value = self.policy(x)
         action = dist.sample()
         return action, value
 
@@ -38,21 +38,21 @@ class Brain:
 
         return total_loss.numpy(), entropy.numpy(), explained_variance(np.hstack(values), np.hstack(returns))
 
-    @tf.function
+    # @tf.function
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
-            dist, value = self.current_policy(state)
+            dist, value = self.policy(state)
             entropy = tf.reduce_mean(dist.entropy())
-            new_log_prob = dist.log_prob(action)
-            actor_loss = -tf.reduce_mean(new_log_prob * adv)
+            log_prob = dist.log_prob(action)
+            actor_loss = -tf.reduce_mean(log_prob * adv)
 
-            critic_loss = tf.reduce_mean(0.5 * (q_value - value) ** 2)
+            critic_loss = tf.reduce_mean(0.5 * (q_value - tf.squeeze(value, axis=-1)) ** 2)
 
             total_loss = 0.5 * critic_loss + actor_loss - 0.01 * entropy
 
-        grads = tape.gradient(total_loss, self.current_policy.trainable_variables)
+        grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, 0.5)
-        self.optimizer.apply_gradients(zip(grads, self.current_policy.trainable_variables))
+        self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
 
         return total_loss, entropy
 
@@ -68,15 +68,15 @@ class Brain:
         return np.vstack(returns)
 
     def save_params(self, iteration, running_reward):
-        self.current_policy.save_weights("weights.h5", save_format="h5")
+        self.policy.save_weights("weights.h5", save_format="h5")
         stats_to_write = {"iteration": iteration, "running_reward": running_reward}
         with open("stats.json", "w") as f:
             f.write(json.dumps(stats_to_write))
             f.flush()
 
     def load_params(self):
-        self.current_policy.build((None, *self.state_shape))
-        self.current_policy.load_weights("weights.h5")
+        self.policy.build((None, *self.state_shape))
+        self.policy.load_weights("weights.h5")
         with open("stats.json", "r") as f:
             stats = json.load(f)
 

@@ -15,7 +15,7 @@ class NN(Model, ABC):
         self.conv2 = Conv2D(filters=64, kernel_size=4, strides=2, activation="relu", kernel_initializer="he_normal")
         self.conv3 = Conv2D(filters=64, kernel_size=3, strides=1, activation="relu", kernel_initializer="he_normal")
         self.flatten = Flatten()
-        self.fc = Dense(units=256, activation="relu", kernel_initializer="he_normal")
+        self.fc = Dense(units=512, activation="relu", kernel_initializer="he_normal")
         self.value = Dense(units=1)
         self.policy = Dense(units=self.n_actions, activation="softmax")
 
