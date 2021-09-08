@@ -11,7 +11,6 @@ class Worker(Process):
         self.env = make_atari(self.env_name)
         self.lives = self.env.ale.lives()
         self.conn = conn
-        # self.env = gym.make(self.env_name)
         self._stacked_states = np.zeros(self.state_shape, dtype=np.uint8)
         self.reset()
 
@@ -30,11 +29,8 @@ class Worker(Process):
         print(f"W: {self.id} started.")
         while True:
             self.conn.send(self._stacked_states)
-            # self.render()
             action = self.conn.recv()
             next_state, r, d, info = self.env.step(action)
-            # if self.lives > info["ale.lives"]:
-            #     r = -1
 
             self._stacked_states = stack_states(self._stacked_states, next_state, False)
             self.conn.send((self._stacked_states, np.sign(r), d))

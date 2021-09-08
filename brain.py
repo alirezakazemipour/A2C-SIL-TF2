@@ -47,9 +47,10 @@ class Brain:
 
             critic_loss = tf.reduce_mean(0.5 * (q_value - value) ** 2)
 
-            total_loss = critic_loss + actor_loss - 0.01 * entropy
+            total_loss = 0.5 * critic_loss + actor_loss - 0.01 * entropy
 
         grads = tape.gradient(total_loss, self.current_policy.trainable_variables)
+        grads, grad_norm = tf.clip_by_global_norm(grads, 0.5)
         self.optimizer.apply_gradients(zip(grads, self.current_policy.trainable_variables))
 
         return total_loss, entropy

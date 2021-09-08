@@ -9,7 +9,7 @@ from test_policy import evaluate_policy
 from play import Play
 import os
 
-env_name = "BreakoutNoFrameskip-v4"
+env_name = "PongNoFrameskip-v4"
 test_env = gym.make(env_name)
 n_actions = test_env.action_space.n
 n_workers = os.cpu_count()
@@ -17,7 +17,7 @@ state_shape = (84, 84, 4)
 iterations = int(2e4)
 log_period = 50
 T = 80 // n_workers
-lr = 2.5e-4
+lr = 7e-4
 LOAD_FROM_CKP = False
 Train = True
 
@@ -89,9 +89,7 @@ if __name__ == '__main__':
                       f"Total_loss: {total_loss:.3f}| "
                       f"Explained variance:{ev:.3f}| "
                       f"Entropy: {entropy:.3f}| "
-                      f"Iter_duration: {time.time() - start_time:.3f}| "
-                      # f"Lr: {brain.scheduler.get_last_lr()}| "
-                      f"Clip_range:{brain.epsilon:.3f}")
+                      f"Iter_duration: {time.time() - start_time:.3f}| ")
                 # brain.save_params(iteration, running_reward)
 
             # with tf.summary.SummaryWriter(env_name + "/logs") as writer:
