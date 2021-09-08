@@ -27,6 +27,6 @@ class NN(Model, ABC):
         x = self.flatten(x)
         x = self.fc(x)
         value = self.value(x)
-        dist = Categorical(self.policy(x))
+        dist = Categorical(probs=self.policy(x))
 
         return dist, value

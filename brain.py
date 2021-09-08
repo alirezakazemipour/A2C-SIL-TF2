@@ -32,13 +32,13 @@ class Brain:
         returns = self.get_returns(rewards, next_values, dones).astype("float32")
         values = np.vstack(values)
         advs = returns - values
-        advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-6)
+        advs = (advs - advs.mean(1).reshape((-1, 1))) / (advs.std(1).reshape((-1, 1)) + 1e-8)
 
         total_loss, entropy = self.optimize(states, actions, np.hstack(returns), np.hstack(advs).astype("float32"))
 
         return total_loss.numpy(), entropy.numpy(), explained_variance(np.hstack(values), np.hstack(returns))
 
-    # @tf.function
+    @tf.function
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
@@ -60,7 +60,7 @@ class Brain:
 
         returns = [[] for _ in range(self.n_workers)]
         for worker in range(self.n_workers):
-            R = next_values[worker] if not isinstance(next_values, float) else next_values
+            R = next_values[worker]
             for step in reversed(range(len(rewards[worker]))):
                 R = rewards[worker][step] + gamma * R * (1 - dones[worker][step])
                 returns[worker].insert(0, R)
