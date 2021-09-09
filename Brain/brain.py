@@ -33,7 +33,7 @@ class Brain:
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm, explained_variance(values, returns)
 
-    @tf.function
+    # @tf.function
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
@@ -43,7 +43,7 @@ class Brain:
 
             critic_loss = tf.reduce_mean((q_value - tf.squeeze(value, axis=-1)) ** 2)
 
-            total_loss = actor_loss + self.config["crtic_coeff"] * critic_loss - self.config["ent_coeff"] * entropy
+            total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - self.config["ent_coeff"] * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])

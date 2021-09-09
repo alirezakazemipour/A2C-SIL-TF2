@@ -9,12 +9,13 @@ import time
 
 
 if __name__ == '__main__':
+    # mp.set_start_method("spawn")
     params = get_params()
     test_env = gym.make(params["env_name"])
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()
     del test_env
-    params.update({"n_workers": mp.cpu_count()})
+    params.update({"n_workers": 2})
     params.update({"rollout_length": 80 // params["n_workers"]})
 
     brain = Brain(**params)
@@ -28,7 +29,6 @@ if __name__ == '__main__':
             init_iteration = 0
             episode = 0
 
-        mp.set_start_method("spawn")
         parents = []
         for i in range(params["n_workers"]):
             parent_conn, child_conn = mp.Pipe()
@@ -77,11 +77,8 @@ if __name__ == '__main__':
 
             _, next_values = brain.get_actions_and_values(next_states, batch=True)
 
-            total_states = np.concatenate(total_states)
-            total_actions = np.concatenate(total_actions)
-
-            training_logs = brain.train(total_states,
-                                        total_actions,
+            training_logs = brain.train(np.concatenate(total_states),
+                                        np.concatenate(total_actions),
                                         total_rewards,
                                         total_dones,
                                         total_values,

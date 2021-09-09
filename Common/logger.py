@@ -48,7 +48,7 @@ class Logger:
         self.duration = time.time() - self.start_time
 
     def log_iteration(self, *args):
-        iteration, training_logs, action_prob = args
+        iteration, training_logs = args
         self.running_training_logs = self.exp_avg(self.running_training_logs, np.array(training_logs))
 
         if iteration % (self.config["interval"] // 3) == 0:
@@ -64,8 +64,8 @@ class Logger:
         self.experiment.log_metric("Running PG Loss", self.running_training_logs[0], step=iteration)
         self.experiment.log_metric("Running Value Loss", self.running_training_logs[1], step=iteration)
         self.experiment.log_metric("Running Entropy", self.running_training_logs[2], step=iteration)
-        self.experiment.log_metric("Running Grad norm", self.running_training_logs[4], step=iteration)
-        self.experiment.log_metric("Running Explained variance", self.running_training_logs[5], step=iteration)
+        self.experiment.log_metric("Running Grad norm", self.running_training_logs[3], step=iteration)
+        self.experiment.log_metric("Running Explained variance", self.running_training_logs[4], step=iteration)
 
         self.off()
         if iteration % self.config["interval"] == 0:
@@ -106,11 +106,11 @@ class Logger:
                           "episode": episode,
                           "running_reward": self.running_reward,
                           "running_last_10_r": self.running_last_10_r,
-                          "running_training_logs": self.running_training_logs
+                          "running_training_logs": list(self.running_training_logs)
                           }
 
-        self.brain.policy.save_weights("Models/" + self.weight_dir + "weights.h5", save_format="h5")
-        with open("Models/" + self.weight_dir + "stats.json", "w") as f:
+        self.brain.policy.save_weights("Models/" + self.weight_dir + "/weights.h5", save_format="h5")
+        with open("Models/" + self.weight_dir + "/stats.json", "w") as f:
             f.write(json.dumps(stats_to_write))
             f.flush()
 
@@ -120,11 +120,11 @@ class Logger:
         self.weight_dir = model_dir[-1].split(os.sep)[-1]
 
         self.brain.policy.build((None, *self.config["state_shape"]))
-        self.brain.policy.load_weights(model_dir[-1] + "weights.h5")
-        with open(model_dir[-1] + "stats.json", "r") as f:
+        self.brain.policy.load_weights(model_dir[-1] + "/weights.h5")
+        with open(model_dir[-1] + "/stats.json", "r") as f:
             stats = json.load(f)
         self.running_last_10_r = stats["running_last_10_r"]
-        self.running_training_logs = stats["running_training_logs"]
+        self.running_training_logs = np.asarray(stats["running_training_logs"])
         self.running_reward = stats["running_reward"]
 
         return stats["iteration"], stats["episode"]
