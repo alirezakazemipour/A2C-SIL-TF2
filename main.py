@@ -9,13 +9,12 @@ import time
 
 
 if __name__ == '__main__':
-    # mp.set_start_method("spawn")
     params = get_params()
     test_env = gym.make(params["env_name"])
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()
     del test_env
-    params.update({"n_workers": 2})
+    params.update({"n_workers": mp.cpu_count()})
     params.update({"rollout_length": 80 // params["n_workers"]})
 
     brain = Brain(**params)
@@ -85,7 +84,6 @@ if __name__ == '__main__':
                                         next_values)
 
             logger.log_iteration(iteration, training_logs)
-
 
     else:
         play = Play(params["env_name"], brain)

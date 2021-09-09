@@ -95,17 +95,22 @@ class Logger:
         self.std_episode_rewards = self.exp_avg(self.std_episode_rewards, np.std(np.asarray(self.episode_rewards)))
         self.mean_episode_rewards = \
             self.exp_avg(self.mean_episode_rewards, sum(self.episode_rewards) / len(self.episode_rewards))
-        self.running_reward = self.exp_avg(self.running_reward, self.episode_reward)
+        if self.episode == 1:
+            self.running_reward = self.episode_reward
+        else:
+            self.running_reward = self.exp_avg(self.running_reward, self.episode_reward)
 
         self.last_10_ep_rewards.append(self.episode_reward)
         if len(self.last_10_ep_rewards) == self.moving_avg_window:
             self.running_last_10_r = np.convolve(self.last_10_ep_rewards, self.moving_weights, 'valid')
 
+    # region save_params
     def save_params(self, episode, iteration):
         stats_to_write = {"iteration": iteration,
                           "episode": episode,
                           "running_reward": self.running_reward,
-                          "running_last_10_r": self.running_last_10_r,
+                          "running_last_10_r": self.running_last_10_r
+                          if not isinstance(self.running_last_10_r, np.ndarray) else self.running_last_10_r[0],
                           "running_training_logs": list(self.running_training_logs)
                           }
 
@@ -114,6 +119,9 @@ class Logger:
             f.write(json.dumps(stats_to_write))
             f.flush()
 
+    # endregion
+
+    # region load_weights
     def load_weights(self):
         model_dir = glob.glob("Models/*")
         model_dir.sort()
@@ -128,3 +136,4 @@ class Logger:
         self.running_reward = stats["running_reward"]
 
         return stats["iteration"], stats["episode"]
+    # endregion
