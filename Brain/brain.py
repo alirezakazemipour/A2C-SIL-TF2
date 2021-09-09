@@ -4,7 +4,7 @@ import numpy as np
 from Common import explained_variance
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
-from tensorflow.keras.losses import mean_squared_error
+# from tensorflow.keras.losses import mean_squared_error
 
 
 class Brain:
@@ -17,27 +17,27 @@ class Brain:
     def extract_batch(self, *x):
         batch = self.config["transition"](*zip(*x))
         states = np.concatenate(batch.state).reshape(-1, *self.config["state_shape"])
-        rewards = np.concatenate(batch.reward).reshape(-1, 1)
-        dones = np.concatenate(batch.done).reshape(-1, 1)
-        return states, rewards, dones
+        rewards = np.array(batch.reward).reshape(-1, 1)
+        dones = np.array(batch.done).reshape(-1, 1)
+        values = np.array(batch.value).reshape(-1, 1)
+        return states, rewards, dones, values
 
     def unpack_batch(self, x):
         batch = self.memory.transition(*zip(*x))
 
-        states = np.concatenate(batch.state).reshape(-1, *self.config["state_shape"])
-        returns = np.concatenate(batch.R).reshape(-1, 1)
-        actions = np.concatenate(batch.action).reshape(-1, 1)
-        advs = np.concatenate(batch.adv).reshape(-1, 1)
+        states = np.concatenate(batch.s).reshape(-1, *self.config["state_shape"])
+        returns = np.concatenate(batch.R).astype(np.float32)
+        actions = np.array(batch.a)
+        advs = np.concatenate(batch.adv).astype(np.float32)
         return states, actions, returns, advs
 
     def add_to_memory(self, *trajectory):
-        states, rewards, dones = self.extract_batch(*trajectory)
-        _, values = self.get_actions_and_values(states, batch=True)
-        returns = self.get_returns(rewards, [0], dones, 1)
+        states, rewards, dones, values = self.extract_batch(*trajectory)
+        returns = self.get_returns([rewards], [0], [dones], 1)
         for transition, R, V in zip(trajectory, returns, values):
             if R >= V:
-                for s, a, _, d, ns in transition:
-                    self.memory.add(s, a, R, R - V)
+                s, a, _, d, ns, _ = transition
+                self.memory.add(s, a, R, R - V)
 
     @tf.function
     def feedforward_model(self, x):
@@ -75,12 +75,11 @@ class Brain:
     def optimize(self, state, action, q_value, adv, weights=1):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
-            entropy = dist.entropy()
+            entropy = tf.reduce_mean(dist.entropy() * weights)
             log_prob = dist.log_prob(action)
-            actor_loss = -(log_prob * adv)
-            critic_loss = (q_value - tf.squeeze(value, axis=-1)) ** 2
+            actor_loss = -tf.reduce_mean(log_prob * adv * weights)
+            critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights)
             total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - self.config["ent_coeff"] * entropy
-            total_loss = tf.reduce_mean(total_loss * weights)
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])

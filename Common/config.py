@@ -31,8 +31,7 @@ def get_params():
                       "critic_coeff": 0.5,
                       "max_grad_norm": 0.5,
                       "n_sil_updates": 4,
-                      "sil_batch_size": 512,
-                      "final_annealing_beta_steps": 40000,
+                      "sil_batch_size": 32,
                       "random_seed": 123
                       }
 

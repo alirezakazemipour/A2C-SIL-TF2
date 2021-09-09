@@ -46,7 +46,7 @@ class ReplayMemory:
             indices.append(idx)
             sample_prob = self.sum_tree[idx] / p_total
             weights.append((len(self) * sample_prob) ** -beta)
-        weights = np.asarray(weights) / max_weight
+        weights = (np.asarray(weights) / max_weight).astype(np.float32)
 
         return [self.memory[index] for index in indices], weights, np.asarray(indices)
 

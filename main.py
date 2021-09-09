@@ -16,7 +16,8 @@ if __name__ == '__main__':
     del test_env
     params.update({"n_workers": mp.cpu_count()})
     params.update({"rollout_length": 80 // params["n_workers"]})
-    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'next_state'))})
+    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'next_state', 'value'))})
+    params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
 
     brain = Brain(**params)
     if not params["do_test"]:
@@ -58,8 +59,8 @@ if __name__ == '__main__':
 
                 total_actions[:, t], total_values[:, t] = brain.get_actions_and_values(total_states[:, t], batch=True)
 
-                for parent, a in zip(parents, total_actions[:, t]):
-                    parent.send(int(a))
+                for parent, a, v in zip(parents, total_actions[:, t], total_values[:, t]):
+                    parent.send((int(a), v))
 
                 for worker_id, parent in enumerate(parents):
                     s_, r, d = parent.recv()
