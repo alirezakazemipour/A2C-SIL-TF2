@@ -3,14 +3,14 @@ import numpy as np
 from Common import explained_variance
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
+from tensorflow.keras.losses import mean_squared_error
 
 
 class Brain:
     def __init__(self, **config):
         self.config = config
-
         self.policy = NN(self.config["n_actions"])
-        self.optimizer = Adam(learning_rate=self.config["lr"], epsilon=self.config["adam_eps"])
+        self.optimizer = Adam(learning_rate=self.config["lr"])
 
     @tf.function
     def feedforward_model(self, x):
@@ -40,9 +40,7 @@ class Brain:
             entropy = tf.reduce_mean(dist.entropy())
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_mean(log_prob * adv)
-
-            critic_loss = tf.reduce_mean((q_value - tf.squeeze(value, axis=-1)) ** 2)
-
+            critic_loss = mean_squared_error(q_value, tf.squeeze(value, axis=-1))
             total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - self.config["ent_coeff"] * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)

@@ -20,7 +20,6 @@ class Logger:
         self.episode_rewards = []
         self.running_reward = 0
         self.max_episode_rewards = -np.inf
-        self.min_episode_rewards = np.inf
         self.std_episode_rewards = 0
         self.mean_episode_rewards = 0
         self.episode_length = 0
@@ -57,7 +56,6 @@ class Logger:
         self.experiment.log_metric("Running Episode Reward", self.running_reward, step=self.episode)
         self.experiment.log_metric("Running last 10 Reward", self.running_last_10_r, step=self.episode)
         self.experiment.log_metric("Max Episode Reward", self.max_episode_rewards, step=self.episode)
-        self.experiment.log_metric("Min Episode Reward", self.min_episode_rewards, step=self.episode)
         self.experiment.log_metric("Std Episode Reward", self.std_episode_rewards, step=self.episode)
         self.experiment.log_metric("Mean Episode Reward", self.mean_episode_rewards, step=self.episode)
         self.experiment.log_metric("Episode Length", self.episode_length, step=self.episode)
@@ -90,7 +88,6 @@ class Logger:
 
         self.episode_rewards.append(self.episode_reward)
         self.max_episode_rewards = max(self.max_episode_rewards, self.episode_reward)
-        self.min_episode_rewards = min(self.min_episode_rewards, self.episode_reward)
         self.std_episode_rewards = np.std(np.asarray(self.episode_rewards))
         self.mean_episode_rewards = sum(self.episode_rewards) / len(self.episode_rewards)
 
