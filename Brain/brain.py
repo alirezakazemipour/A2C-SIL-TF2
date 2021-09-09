@@ -31,7 +31,7 @@ class Brain:
 
         a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs)
 
-        return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm, explained_variance(values, returns)
+        return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
     @tf.function
     def optimize(self, state, action, q_value, adv):

@@ -23,7 +23,6 @@ def get_params():
     # region default parameters
     default_params = {"state_shape": (84, 84, 4),
                       "lr": 7e-4,  # Fixed
-                      "adam_eps": 1e-5,
                       "gamma": 0.99,  # Fixed
                       "ent_coeff": 0.01,
                       "critic_coeff": 0.5,  # Fixed
