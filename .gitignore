@@ -129,7 +129,9 @@ dmypy.json
 .pyre/
 
 .idea
-*.json
-*.h5
+#*.json
+#*.h5
 events*
 .comet.config
+*.avi
+*amp4

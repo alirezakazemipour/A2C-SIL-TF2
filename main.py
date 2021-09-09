@@ -96,5 +96,7 @@ if __name__ == '__main__':
             logger.log_iteration(iteration, training_logs)
 
     else:
+        logger = Logger(brain, experiment=None, **params)
+        logger.load_weights()
         play = Play(params["env_name"], brain)
         play.evaluate()
