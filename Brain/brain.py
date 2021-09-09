@@ -27,13 +27,13 @@ class Brain:
     def train(self, states, actions, rewards, dones, values, next_values):
         returns = self.get_returns(rewards, next_values, dones)
         values = np.hstack(values)
-        advs = returns - values
+        advs = (returns - values).astype(np.float32)
 
         a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs)
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm, explained_variance(values, returns)
 
-    # @tf.function
+    @tf.function
     def optimize(self, state, action, q_value, adv):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)

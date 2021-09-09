@@ -77,7 +77,7 @@ if __name__ == '__main__':
             _, next_values = brain.get_actions_and_values(next_states, batch=True)
 
             training_logs = brain.train(np.concatenate(total_states),
-                                        np.concatenate(total_actions),
+                                        np.concatenate(total_actions).astype(np.int32),
                                         total_rewards,
                                         total_dones,
                                         total_values,

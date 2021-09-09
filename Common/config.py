@@ -8,7 +8,7 @@ def get_params():
     parser.add_argument("--env_name", default="PongNoFrameskip-v4", type=str, help="Name of the environment.")
 
     parser.add_argument("--total_iterations", default=8000, type=int, help="The total number of iterations.")  # Fixed
-    parser.add_argument("--interval", default=30, type=int,
+    parser.add_argument("--interval", default=200, type=int,
                         help="The interval specifies how often different parameters should be saved and printed,"
                              " counted by iterations.")
     parser.add_argument("--do_test", action="store_true",
