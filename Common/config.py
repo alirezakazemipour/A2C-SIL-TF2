@@ -5,9 +5,10 @@ def get_params():
     parser = argparse.ArgumentParser(
         description="Variable parameters based on the configuration of the machine or user's choice")
 
-    parser.add_argument("--env_name", default="PongNoFrameskip-v4", type=str, help="Name of the environment.")
+    parser.add_argument("--env_name", default="FreewayNoFrameskip-v4", type=str, help="Name of the environment.")
 
-    parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")  # Fixed
+    parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
+    parser.add_argument("--mem_size", default=1000, type=int, help="The SIL's memory size.")
     parser.add_argument("--interval", default=500, type=int,
                         help="The interval specifies how often different parameters should be saved and printed,"
                              " counted by iterations.")
@@ -22,11 +23,16 @@ def get_params():
 
     # region default parameters
     default_params = {"state_shape": (84, 84, 4),
-                      "lr": 7e-4,  # Fixed
-                      "gamma": 0.99,  # Fixed
+                      "lr": 7e-4,
+                      "alpha": 0.6,
+                      "beta": 0.4,
+                      "gamma": 0.99,
                       "ent_coeff": 0.01,
-                      "critic_coeff": 0.5,  # Fixed
-                      "max_grad_norm": 0.5,  # Fixed
+                      "critic_coeff": 0.5,
+                      "max_grad_norm": 0.5,
+                      "n_sil_updates": 4,
+                      "sil_batch_size": 512,
+                      "final_annealing_beta_steps": 40000,
                       "random_seed": 123
                       }
 

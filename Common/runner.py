@@ -7,10 +7,9 @@ class Worker(Process):
         super(Worker, self).__init__()
         self.id = id
         self.config = config
-        self.env = make_atari(self.config["env_name"])
-        self.lives = self.env.ale.lives()
+        self.env = make_atari(self.config["env_name"], episodic_life=False)
         self.conn = conn
-        self._stacked_states = np.zeros(self.config["state_shape"], dtype=np.uint8)
+        self.episode_buffer = []
         self.reset()
 
     def __str__(self):
@@ -20,18 +19,23 @@ class Worker(Process):
         self.env.render()
 
     def reset(self):
-        state = self.env.reset()
-        self._stacked_states = stack_states(self._stacked_states, state, True)
-        self.lives = self.env.ale.lives()
+        obs = self.env.reset()
+        state = np.zeros(self.config["state_shape"], dtype=np.uint8)
+        return stack_states(state, obs, True)
 
     def run(self):
         print(f"W: {self.id} started.")
+        state = self.reset()
         while True:
-            self.conn.send(self._stacked_states)
+            self.conn.send(state)
             action = self.conn.recv()
-            next_state, r, d, info = self.env.step(action)
-
-            self._stacked_states = stack_states(self._stacked_states, next_state, False)
-            self.conn.send((self._stacked_states, np.sign(r), d))
-            if d:
-                self.reset()
+            next_obs, r, done, info = self.env.step(action)
+            next_state = stack_states(state, next_obs, False)
+            reward = np.sign(r)
+            self.conn.send((next_state, reward, done))
+            self.episode_buffer.append((state, action, reward, done, next_state))
+            state = next_state
+            if done:
+                self.conn.send(self.episode_buffer)
+                self.episode_buffer = []
+                state = self.reset()

@@ -6,7 +6,7 @@ from Brain import Brain
 import gym
 from tqdm import tqdm
 import time
-
+from collections import namedtuple
 
 if __name__ == '__main__':
     params = get_params()
@@ -16,6 +16,7 @@ if __name__ == '__main__':
     del test_env
     params.update({"n_workers": mp.cpu_count()})
     params.update({"rollout_length": 80 // params["n_workers"]})
+    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'next_state'))})
 
     brain = Brain(**params)
     if not params["do_test"]:
@@ -66,6 +67,10 @@ if __name__ == '__main__':
                     total_dones[worker_id, t] = d
                     next_states[worker_id] = s_
 
+                for parent, done in zip(parents, total_dones[:, t]):
+                    if done:
+                        brain.add_to_memory(*parent.recv())
+
                 episode_reward += total_rewards[0, t]
                 episode_length += 1
                 if total_dones[0, t]:
@@ -82,6 +87,10 @@ if __name__ == '__main__':
                                         total_dones,
                                         total_values,
                                         next_values)
+
+            beta = min(1.0, params["beta"] + iteration * (1.0 - params["beta"]) / params["final_annealing_beta_steps"])
+            for m in range(params["n_sil_updates"]):
+                sil_training_logs = brain.train_sil(beta)
 
             logger.log_iteration(iteration, training_logs)
 

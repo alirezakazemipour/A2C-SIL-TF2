@@ -41,6 +41,7 @@ def explained_variance(ypred, y):
 def make_atari(env_id, episodic_life=True, seed=123):
     env = gym.make(env_id)
     assert 'NoFrameskip' in env.spec.id
+    assert episodic_life is False
 
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
