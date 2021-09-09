@@ -1,17 +1,16 @@
-from utils import *
+from Common import *
 from multiprocessing import Process
 
 
 class Worker(Process):
-    def __init__(self, id, state_shape, env_name, conn):
+    def __init__(self, id, conn, **config):
         super(Worker, self).__init__()
         self.id = id
-        self.env_name = env_name
-        self.state_shape = state_shape
-        self.env = make_atari(self.env_name)
+        self.config = config
+        self.env = make_atari(self.config["env_name"])
         self.lives = self.env.ale.lives()
         self.conn = conn
-        self._stacked_states = np.zeros(self.state_shape, dtype=np.uint8)
+        self._stacked_states = np.zeros(self.config["state_shape"], dtype=np.uint8)
         self.reset()
 
     def __str__(self):

@@ -132,3 +132,4 @@ dmypy.json
 *.json
 *.h5
 events*
+.comet.config

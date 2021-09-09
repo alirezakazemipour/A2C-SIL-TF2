@@ -1,8 +1,6 @@
-import torch
-from torch import device
 import time
 import os
-from utils import *
+from Common.utils import *
 
 
 class Play:
@@ -12,7 +10,6 @@ class Play:
         self.agent = agent
         self.agent.load_params()
         self.agent.set_to_eval_mode()
-        self.device = device("cuda" if torch.cuda.is_available() else "cpu")
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         if not os.path.exists("Results"):
             os.mkdir("Results")

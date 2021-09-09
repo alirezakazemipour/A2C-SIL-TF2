@@ -1,57 +1,57 @@
-import os
-from runner import Worker
-from multiprocessing import Pipe, set_start_method
+from comet_ml import Experiment
+from Common import Worker, Play, Logger, get_params
+import multiprocessing as mp
 import numpy as np
-from brain import Brain
+from Brain import Brain
 import gym
 from tqdm import tqdm
 import time
-from test_policy import evaluate_policy
-from play import Play
-import tensorflow as tf
-
-env_name = "PongNoFrameskip-v4"
-test_env = gym.make(env_name)
-n_actions = test_env.action_space.n
-n_workers = os.cpu_count()
-state_shape = (84, 84, 4)
-iterations = int(2e4)
-log_period = 25
-T = 80 // n_workers
-lr = 7e-4
-LOAD_FROM_CKP = False
-Train = True
 
 
 if __name__ == '__main__':
-    set_start_method("spawn")
-    writer = tf.summary.create_file_writer(env_name + "/logs")
-    brain = Brain(state_shape, n_actions, n_workers, lr)
-    if Train:
-        if LOAD_FROM_CKP:
-            running_reward, init_iteration = brain.load_params()
+    params = get_params()
+    test_env = gym.make(params["env_name"])
+    params.update({"n_actions": test_env.action_space.n})
+    test_env.close()
+    del test_env
+    params.update({"n_workers": mp.cpu_count()})
+    params.update({"rollout_length": 80 // params["n_workers"]})
+
+    brain = Brain(**params)
+    if not params["do_test"]:
+        experiment = Experiment() # Add your Comet configs!
+        logger = Logger(brain, experiment=experiment, **params)
+
+        if not params["train_from_scratch"]:
+            init_iteration, episode = logger.load_weights()
         else:
             init_iteration = 0
-            running_reward = 0
+            episode = 0
 
+        mp.set_start_method("spawn")
         parents = []
-        for i in range(n_workers):
-            parent_conn, child_conn = Pipe()
+        for i in range(params["n_workers"]):
+            parent_conn, child_conn = mp.Pipe()
             parents.append(parent_conn)
-            w = Worker(i, state_shape, env_name, child_conn)
+            w = Worker(i, conn=child_conn, **params)
             w.start()
 
-        for iteration in tqdm(range(init_iteration + 1, iterations + 1)):
-            start_time = time.time()
-            total_states = np.zeros((n_workers, T,) + state_shape)
-            total_actions = np.zeros((n_workers, T))
-            total_rewards = np.zeros((n_workers, T))
-            total_dones = np.zeros((n_workers, T))
-            total_values = np.zeros((n_workers, T))
-            next_states = np.zeros((n_workers,) + state_shape)
-            next_values = np.zeros(n_workers)
+        rollout_base_shape = params["n_workers"], params["rollout_length"]
 
-            for t in range(T):
+        total_states = np.zeros(rollout_base_shape + params["state_shape"], dtype=np.uint8)
+        total_actions = np.zeros(rollout_base_shape, dtype=np.uint8)
+        total_rewards = np.zeros(rollout_base_shape)
+        total_dones = np.zeros(rollout_base_shape, dtype=np.bool)
+        total_values = np.zeros(rollout_base_shape)
+        next_states = np.zeros((rollout_base_shape[0],) + params["state_shape"], dtype=np.uint8)
+
+        logger.on()
+        episode_reward = 0
+        episode_length = 0
+        for iteration in tqdm(range(init_iteration + 1, params["total_iterations"] + 1)):
+            start_time = time.time()
+
+            for t in range(params["rollout_length"]):
                 for worker_id, parent in enumerate(parents):
                     s = parent.recv()
                     total_states[worker_id, t] = s
@@ -66,42 +66,30 @@ if __name__ == '__main__':
                     total_rewards[worker_id, t] = r
                     total_dones[worker_id, t] = d
                     next_states[worker_id] = s_
+
+                episode_reward += total_rewards[0, t]
+                episode_length += 1
+                if total_dones[0, t]:
+                    episode += 1
+                    logger.log_episode(episode, episode_reward, episode_length)
+                    episode_reward = 0
+                    episode_length = 0
+
             _, next_values = brain.get_actions_and_values(next_states, batch=True)
 
             total_states = np.concatenate(total_states)
             total_actions = np.concatenate(total_actions)
 
-            # Calculates if value function is a good predictor of the returns (ev > 1)
-            # or if it's just worse than predicting nothing (ev =< 0)
-            total_loss, entropy, ev, g_norm = brain.train(total_states, total_actions, total_rewards, total_dones, total_values,
-                                                  next_values)
+            training_logs = brain.train(total_states,
+                                        total_actions,
+                                        total_rewards,
+                                        total_dones,
+                                        total_values,
+                                        next_values)
 
-            episode_reward, step = evaluate_policy(env_name, brain, state_shape)
+            logger.log_iteration(iteration, training_logs)
 
-            if iteration == 1:
-                running_reward = episode_reward
-            else:
-                running_reward = 0.99 * running_reward + 0.01 * episode_reward
 
-            if iteration % log_period == 0:
-                print(f"Iter: {iteration}| "
-                      f"Ep_reward: {episode_reward:.3f}| "
-                      f"Running_reward: {running_reward:.3f}| "
-                      f"step: {step}| "
-                      f"g_norm: {g_norm:.3f}| "
-                      f"Total_loss: {total_loss:.3f}| "
-                      f"Explained variance:{ev:.3f}| "
-                      f"Entropy: {entropy:.3f}| "
-                      f"Iter_duration: {time.time() - start_time:.3f}| ")
-                brain.save_params(iteration, running_reward)
-
-            with writer.as_default():
-                tf.summary.scalar("running reward", running_reward, iteration)
-                tf.summary.scalar("episode reward", episode_reward, iteration)
-                tf.summary.scalar("explained variance", ev, iteration)
-                tf.summary.scalar("loss", total_loss, iteration)
-                tf.summary.scalar("entropy", entropy, iteration)
-                writer.flush()
     else:
-        play = Play(env_name, brain)
+        play = Play(params["env_name"], brain)
         play.evaluate()
