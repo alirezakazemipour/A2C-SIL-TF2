@@ -6,6 +6,7 @@ import glob
 from collections import deque
 import json
 import psutil
+import sys
 
 
 class Logger:
@@ -31,6 +32,9 @@ class Logger:
         self.running_last_10_r = 0  # It is not correct but does not matter.
         self.to_gb = lambda x: x / 1024 / 1024 / 1024
 
+        sys.stdout.write("\033[;1m")
+        print("params:", self.config)
+        sys.stdout.write("\033[0;0m")
         if not self.config["do_test"] and self.config["train_from_scratch"]:
             self.create_wights_folder()
             self.experiment.log_parameters(self.config)

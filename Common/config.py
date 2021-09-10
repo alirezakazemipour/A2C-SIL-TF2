@@ -8,7 +8,7 @@ def get_params():
     parser.add_argument("--env_name", default="PongNoFrameskip-v4", type=str, help="Name of the environment.")
 
     parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
-    parser.add_argument("--mem_size", default=10000, type=int, help="The SIL's memory size.")
+    parser.add_argument("--mem_size", default=100000, type=int, help="The SIL's memory size.")
     parser.add_argument("--interval", default=500, type=int,
                         help="The interval specifies how often different parameters should be saved and printed,"
                              " counted by iterations.")
@@ -38,5 +38,4 @@ def get_params():
 
     # endregion
     total_params = {**vars(parser_params), **default_params}
-    print("params:", total_params)
     return total_params
