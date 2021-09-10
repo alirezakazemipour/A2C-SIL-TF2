@@ -1,5 +1,6 @@
 from Common import *
 from multiprocessing import Process
+from collections import deque
 
 
 class Worker(Process):
@@ -9,7 +10,7 @@ class Worker(Process):
         self.config = config
         self.env = make_atari(self.config["env_name"], episodic_life=False, seed=self.config["seed"])
         self.conn = conn
-        self.episode_buffer = []
+        self.episode_buffer = deque(maxlen=4500)
         self.reset()
 
     def __str__(self):
