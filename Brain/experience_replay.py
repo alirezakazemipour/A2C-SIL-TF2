@@ -5,12 +5,13 @@ from collections import namedtuple
 
 
 class ReplayMemory:
-    def __init__(self, capacity, alpha):
+    def __init__(self, capacity, alpha, seed):
         self.capacity = capacity
         self.max_priority = 1
         self.alpha = alpha
         self.transition = namedtuple("sil_batch", ("s", "a", "R", "adv"))
         self.memory = []
+        random.seed(seed)
 
         n_nodes = 1
         while n_nodes < self.capacity:

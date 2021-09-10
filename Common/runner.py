@@ -7,7 +7,7 @@ class Worker(Process):
         super(Worker, self).__init__()
         self.id = id
         self.config = config
-        self.env = make_atari(self.config["env_name"], episodic_life=False)
+        self.env = make_atari(self.config["env_name"], episodic_life=False, seed=self.config["seed"])
         self.conn = conn
         self.episode_buffer = []
         self.reset()

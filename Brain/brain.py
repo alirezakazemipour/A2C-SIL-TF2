@@ -4,15 +4,15 @@ import numpy as np
 from Common import explained_variance
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
-# from tensorflow.keras.losses import mean_squared_error
 
 
 class Brain:
     def __init__(self, **config):
         self.config = config
+        tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
         self.optimizer = Adam(learning_rate=self.config["lr"])
-        self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"])
+        self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
     def extract_batch(self, *x):
         batch = self.config["transition"](*zip(*x))
@@ -66,20 +66,26 @@ class Brain:
         batch, weights, indices = self.memory.sample(self.config["sil_batch_size"], beta)
         states, actions, returns, advs = self.unpack_batch(batch)
 
-        a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs, weights, self.config["w_vloss"])
+        a_loss, v_loss, ent, g_norm = self.optimize(states,
+                                                    actions,
+                                                    returns,
+                                                    advs,
+                                                    weights=weights,
+                                                    ent_coeff =0,
+                                                    sil_beta=self.config["w_vloss"])
         self.memory.update_priorities(indices, advs + 1e-6)
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
-    def optimize(self, state, action, q_value, adv, weights=1, sil_beta=1):
+    def optimize(self, state, action, q_value, adv, weights=1, critic_coeff=0.5, ent_coeff=0.01,  sil_beta=1):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
             entropy = tf.reduce_mean(dist.entropy() * weights)
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_mean(log_prob * adv * weights)
             critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights) * sil_beta
-            total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - self.config["ent_coeff"] * entropy
+            total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])

@@ -7,9 +7,11 @@ import gym
 from tqdm import tqdm
 import time
 from collections import namedtuple
+import os
 
 if __name__ == '__main__':
     params = get_params()
+    os.environ["PYTHONHASHSEED"] = str(params["seed"])
     test_env = gym.make(params["env_name"])
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()
