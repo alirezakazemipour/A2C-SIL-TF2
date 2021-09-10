@@ -5,6 +5,7 @@ import datetime
 import glob
 from collections import deque
 import json
+import psutil
 
 
 class Logger:
@@ -28,6 +29,7 @@ class Logger:
         self.moving_weights = np.repeat(1.0, self.moving_avg_window) / self.moving_avg_window
         self.last_10_ep_rewards = deque(maxlen=10)
         self.running_last_10_r = 0  # It is not correct but does not matter.
+        self.to_gb = lambda x: x / 1024 / 1024 / 1024
 
         if not self.config["do_test"] and self.config["train_from_scratch"]:
             self.create_wights_folder()
@@ -47,7 +49,7 @@ class Logger:
         self.duration = time.time() - self.start_time
 
     def log_iteration(self, *args):
-        iteration, training_logs = args
+        iteration, beta, training_logs = args
         self.running_training_logs = self.exp_avg(self.running_training_logs, np.array(training_logs))
 
         if iteration % (self.config["interval"] // 3) == 0:
@@ -67,17 +69,25 @@ class Logger:
 
         self.off()
         if iteration % self.config["interval"] == 0:
+            ram = psutil.virtual_memory()
             print("Iter: {}| "
                   "E: {}| "
                   "E_Reward: {:.1f}| "
                   "E_Running_Reward: {:.1f}| "
                   "Iter_Duration: {:.3f}| "
+                  "Mem_size: {}| "
+                  "Beta: {:.1f}| "
+                  "{:.1f}/{:.1f} GB RAM| "
                   "Time: {} "
                   .format(iteration,
                           self.episode,
                           self.episode_reward,
                           self.running_reward,
                           self.duration,
+                          len(self.brain.memory),
+                          beta,
+                          self.to_gb(ram.used),
+                          self.to_gb(ram.total),
                           datetime.datetime.now().strftime("%H:%M:%S"),
                           )
                   )

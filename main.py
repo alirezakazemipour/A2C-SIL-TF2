@@ -14,7 +14,7 @@ if __name__ == '__main__':
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()
     del test_env
-    params.update({"n_workers": mp.cpu_count()})
+    params.update({"n_workers": 2})
     params.update({"rollout_length": 80 // params["n_workers"]})
     params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'next_state', 'value'))})
     params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
@@ -93,7 +93,7 @@ if __name__ == '__main__':
             for m in range(params["n_sil_updates"]):
                 sil_training_logs = brain.train_sil(beta)
 
-            logger.log_iteration(iteration, training_logs)
+            logger.log_iteration(iteration, beta, training_logs)
 
     else:
         logger = Logger(brain, experiment=None, **params)
