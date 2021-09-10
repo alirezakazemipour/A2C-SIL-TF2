@@ -36,7 +36,7 @@ class Brain:
         returns = self.get_returns([rewards], [0], [dones], 1)
         for transition, R, V in zip(trajectory, returns, values):
             if R >= V:
-                s, a, _, d, ns, _ = transition
+                s, a, *_ = transition
                 self.memory.add(s, a, R, R - V)
 
     @tf.function
@@ -71,21 +71,21 @@ class Brain:
                                                     returns,
                                                     advs,
                                                     weights=weights,
-                                                    ent_coeff =0,
+                                                    ent_coeff=0,
                                                     sil_beta=self.config["w_vloss"])
         self.memory.update_priorities(indices, advs + 1e-6)
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
-    def optimize(self, state, action, q_value, adv, weights=1, critic_coeff=0.5, ent_coeff=0.01,  sil_beta=1):
+    def optimize(self, state, action, q_value, adv, weights=1, ent_coeff=0.01, sil_beta=1):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
             entropy = tf.reduce_mean(dist.entropy() * weights)
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_mean(log_prob * adv * weights)
             critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights) * sil_beta
-            total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
+            total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - ent_coeff * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])
