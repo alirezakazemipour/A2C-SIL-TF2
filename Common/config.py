@@ -6,7 +6,6 @@ def get_params():
         description="Variable parameters based on the configuration of the machine or user's choice")
 
     parser.add_argument("--env_name", default="PongNoFrameskip-v4", type=str, help="Name of the environment.")
-
     parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
     parser.add_argument("--mem_size", default=100000, type=int, help="The SIL's memory size.")
     parser.add_argument("--interval", default=500, type=int,

@@ -1,9 +1,9 @@
 from .model import NN
 from .experience_replay import ReplayMemory
-import numpy as np
 from Common import explained_variance
 from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
+import numpy as np
 
 
 class Brain:
@@ -14,30 +14,28 @@ class Brain:
         self.optimizer = Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
-    def extract_batch(self, *x):
+    def extract_rewrads(self, *x):
         batch = self.config["transition"](*zip(*x))
-        states = np.concatenate(batch.state).reshape(-1, *self.config["state_shape"])
         rewards = np.array(batch.reward).reshape(-1, 1)
         dones = np.array(batch.done).reshape(-1, 1)
-        values = np.array(batch.value).reshape(-1, 1)
-        return states, rewards, dones, values
+        return rewards, dones
 
     def unpack_batch(self, x):
         batch = self.memory.transition(*zip(*x))
 
         states = np.concatenate(batch.s).reshape(-1, *self.config["state_shape"])
-        returns = np.concatenate(batch.R).astype(np.float32)
         actions = np.array(batch.a)
+        returns = np.concatenate(batch.R).astype(np.float32)
         advs = np.concatenate(batch.adv).astype(np.float32)
         return states, actions, returns, advs
 
     def add_to_memory(self, *trajectory):
-        states, rewards, dones, values = self.extract_batch(*trajectory)
+        rewards, dones = self.extract_rewrads(*trajectory)
         returns = self.get_returns([rewards], [0], [dones], 1)
-        for transition, R, V in zip(trajectory, returns, values):
-            if R >= V:
-                s, a, *_ = transition
-                self.memory.add(s, a, R, R - V)
+        for transition, R in zip(trajectory, returns):
+            s, a, *_, v = transition
+            if R >= v:
+                self.memory.add(s, a, R, R - v)
 
     @tf.function
     def feedforward_model(self, x):
@@ -56,7 +54,11 @@ class Brain:
         values = np.hstack(values)
         advs = (returns - values).astype(np.float32)
 
-        a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs, critic_coeff=self.config["critic_coeff"])
+        a_loss, v_loss, ent, g_norm = self.optimize(states,
+                                                    actions,
+                                                    returns,
+                                                    advs,
+                                                    critic_coeff=self.config["critic_coeff"])
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 

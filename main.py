@@ -1,12 +1,12 @@
 from comet_ml import Experiment
 from Common import Worker, Play, Logger, get_params
+from Brain import Brain
+from tqdm import tqdm
+from collections import namedtuple
 import multiprocessing as mp
 import numpy as np
-from Brain import Brain
 import gym
-from tqdm import tqdm
 import time
-from collections import namedtuple
 import os
 
 if __name__ == '__main__':
