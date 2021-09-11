@@ -33,7 +33,7 @@ class Worker(Process):
             next_state = stack_states(state, next_obs, False)
             reward = np.sign(r)
             self.conn.send((next_state, reward, done))
-            self.episode_buffer.append((state, action, reward, done, next_state, value))
+            self.episode_buffer.append((state, action, reward, done, value))
             state = next_state
             if done:
                 self.conn.send(self.episode_buffer)

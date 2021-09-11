@@ -56,7 +56,7 @@ class Brain:
         values = np.hstack(values)
         advs = (returns - values).astype(np.float32)
 
-        a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs)
+        a_loss, v_loss, ent, g_norm = self.optimize(states, actions, returns, advs, critic_coeff=self.config["critic_coeff"])
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
@@ -71,21 +71,21 @@ class Brain:
                                                     returns,
                                                     advs,
                                                     weights=weights,
-                                                    ent_coeff=0,
-                                                    sil_beta=self.config["w_vloss"])
+                                                    critic_coeff=self.config["w_vloss"],
+                                                    ent_coeff=0)
         self.memory.update_priorities(indices, advs + 1e-6)
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
-    def optimize(self, state, action, q_value, adv, weights=1, ent_coeff=0.01, sil_beta=1):
+    def optimize(self, state, action, q_value, adv, weights=1, critic_coeff=0.5, ent_coeff=0.01):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
             entropy = tf.reduce_mean(dist.entropy() * weights)
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_mean(log_prob * adv * weights)
-            critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights) * sil_beta
-            total_loss = actor_loss + self.config["critic_coeff"] * critic_loss - ent_coeff * entropy
+            critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights)
+            total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])

@@ -18,7 +18,7 @@ if __name__ == '__main__':
     del test_env
     params.update({"n_workers": mp.cpu_count()})
     params.update({"rollout_length": 80 // params["n_workers"]})
-    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'next_state', 'value'))})
+    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value'))})
     params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
 
     brain = Brain(**params)
