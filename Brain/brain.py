@@ -58,7 +58,9 @@ class Brain:
                                                     actions,
                                                     returns,
                                                     advs,
-                                                    critic_coeff=self.config["critic_coeff"])
+                                                    weights=1,
+                                                    critic_coeff=self.config["critic_coeff"],
+                                                    ent_coeff=self.config["ent_coeff"])
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
@@ -80,13 +82,13 @@ class Brain:
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
-    def optimize(self, state, action, q_value, adv, weights=1, critic_coeff=0.5, ent_coeff=0.01):
+    def optimize(self, state, action, q_value, adv, weights, critic_coeff, ent_coeff):
         with tf.GradientTape() as tape:
             dist, value = self.policy(state)
             entropy = tf.reduce_mean(dist.entropy() * weights)
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_mean(log_prob * adv * weights)
-            critic_loss = tf.reduce_mean(tf.square(q_value - tf.squeeze(value, axis=-1)) * weights)
+            critic_loss = tf.reduce_mean(0.5 * tf.square(q_value - tf.squeeze(value, axis=-1)) * weights)
             total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)

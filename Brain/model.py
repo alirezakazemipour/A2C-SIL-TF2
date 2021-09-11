@@ -1,5 +1,5 @@
 from abc import ABC
-from tensorflow.keras.models import Model
+from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense
 from tensorflow_probability.python.distributions import Categorical
 
