@@ -8,7 +8,7 @@ def get_params():
     parser.add_argument("--env_name", default="FreewayNoFrameskip-v4", type=str, help="Name of the environment.")
     parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
     parser.add_argument("--mem_size", default=60000, type=int, help="The SIL's memory size.")
-    parser.add_argument("--interval", default=500, type=int,
+    parser.add_argument("--interval", default=1500, type=int,
                         help="The interval specifies how often different parameters should be saved and printed,"
                              " counted by iterations.")
     parser.add_argument("--do_test", action="store_true",
@@ -32,6 +32,7 @@ def get_params():
                       "n_sil_updates": 4,
                       "sil_batch_size": 512,
                       "w_vloss": 0.01,
+                      "n_workers": 16,
                       "seed": 123
                       }
 

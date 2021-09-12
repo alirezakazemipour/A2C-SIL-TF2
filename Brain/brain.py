@@ -82,7 +82,7 @@ class Brain:
                                                         batch_size=batch_size,
                                                         critic_coeff=self.config["w_vloss"],
                                                         ent_coeff=0)
-            self.memory.update_priorities(indices, advs * masks + 1e-6)
+            self.memory.update_priorities(indices, advs * masks + 1e-5)
 
             return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 

@@ -8,6 +8,7 @@ import numpy as np
 import gym
 import time
 import os
+import math
 
 if __name__ == '__main__':
     params = get_params()
@@ -16,7 +17,6 @@ if __name__ == '__main__':
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()
     del test_env
-    params.update({"n_workers": mp.cpu_count()})
     params.update({"rollout_length": 80 // params["n_workers"]})
     params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value'))})
     params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
                 for worker_id, parent in enumerate(parents):
                     s_, r, d = parent.recv()
-                    total_rewards[worker_id, t] = r
+                    total_rewards[worker_id, t] = math.copysign(1, r)
                     total_dones[worker_id, t] = d
                     next_states[worker_id] = s_
 

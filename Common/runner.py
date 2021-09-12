@@ -29,9 +29,8 @@ class Worker(Process):
         while True:
             self.conn.send(state)
             action, value = self.conn.recv()
-            next_obs, r, done, info = self.env.step(action)
+            next_obs, reward, done, info = self.env.step(action)
             next_state = stack_states(state, next_obs, False)
-            reward = np.sign(r)
             self.conn.send((next_state, reward, done))
             self.episode_buffer.append((state, action, reward, done, value))
             state = next_state
