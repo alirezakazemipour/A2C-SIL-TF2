@@ -52,10 +52,10 @@ def make_atari(env_id, episodic_life=True, seed=123):
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
 
-    np.random.seed(seed)
-    env.seed(seed)
-    env.observation_space.np_random.seed(seed)
-    env.action_space.np_random.seed(seed)
+    # np.random.seed(seed)
+    # env.seed(seed)
+    # env.observation_space.np_random.seed(seed)
+    # env.action_space.np_random.seed(seed)
 
     return env
 

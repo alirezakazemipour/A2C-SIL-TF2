@@ -9,7 +9,7 @@ import numpy as np
 class Brain:
     def __init__(self, **config):
         self.config = config
-        # tf.random.set_seed(self.config["seed"])
+        tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
         self.optimizer = Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
@@ -32,10 +32,9 @@ class Brain:
     def add_to_memory(self, *trajectory):
         rewards, dones = self.extract_rewrads(*trajectory)
         returns = self.get_returns([rewards], [0], [dones], 1)
-        if trajectory[0][-1] < returns[0]:
-            for transition, R in zip(trajectory, returns):
-                s, a, *_, v = transition
-                self.memory.add(s, a, R, R - v)
+        for transition, R in zip(trajectory, returns):
+            s, a, *_, v = transition
+            self.memory.add(s, a, R, R - v)
 
     @tf.function
     def feedforward_model(self, x):
@@ -73,18 +72,19 @@ class Brain:
         states, actions, returns, advs = self.unpack_batch(batch)
         masks = (advs >= 0).astype("float32")
         batch_size = np.sum(masks)
-        a_loss, v_loss, ent, g_norm = self.optimize(states,
-                                                    actions,
-                                                    returns,
-                                                    advs * masks,
-                                                    weights=weights,
-                                                    masks=masks,
-                                                    batch_size=batch_size,
-                                                    critic_coeff=self.config["w_vloss"],
-                                                    ent_coeff=0)
-        self.memory.update_priorities(indices, advs * masks + 1e-6)
+        if batch_size != 0:
+            a_loss, v_loss, ent, g_norm = self.optimize(states,
+                                                        actions,
+                                                        returns,
+                                                        advs * masks,
+                                                        weights=weights,
+                                                        masks=masks,
+                                                        batch_size=batch_size,
+                                                        critic_coeff=self.config["w_vloss"],
+                                                        ent_coeff=0)
+            self.memory.update_priorities(indices, advs * masks + 1e-6)
 
-        return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
+            return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
     def optimize(self, state, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
@@ -93,7 +93,8 @@ class Brain:
             entropy = tf.reduce_sum(dist.entropy() * weights * masks) / batch_size
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_sum(log_prob * adv * weights) / batch_size
-            critic_loss = tf.reduce_sum(0.5 * tf.square(q_value - tf.squeeze(value, axis=-1)) * weights * masks) / batch_size
+            critic_loss = tf.reduce_sum(
+                0.5 * tf.square(q_value - tf.squeeze(value, axis=-1)) * weights * masks) / batch_size
             total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
