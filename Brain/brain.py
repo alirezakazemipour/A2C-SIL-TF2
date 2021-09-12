@@ -14,7 +14,7 @@ class Brain:
         self.optimizer = Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
-    def extract_rewrads(self, *x):
+    def extract_rewards(self, *x):
         batch = self.config["transition"](*zip(*x))
         rewards = np.array(batch.reward).reshape(-1, 1)
         dones = np.array(batch.done).reshape(-1, 1)
@@ -30,7 +30,7 @@ class Brain:
         return states, actions, returns, advs
 
     def add_to_memory(self, *trajectory):
-        rewards, dones = self.extract_rewrads(*trajectory)
+        rewards, dones = self.extract_rewards(*trajectory)
         returns = self.get_returns([rewards], [0], [dones], 1)
         for transition, R in zip(trajectory, returns):
             s, a, *_, v = transition

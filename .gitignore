@@ -128,9 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# .idea
-# *.json
-# *.h5
+.idea
+*.json
+*.h5
 events*
 .comet.config
 *.avi

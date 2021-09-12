@@ -20,8 +20,6 @@ if __name__ == '__main__':
     params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value'))})
     params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
 
-    sign = lambda x: bool(x > 0) - bool(x < 0)
-
     brain = Brain(**params)
     if not params["do_test"]:
         experiment = Experiment()  # Add your Comet configs!
@@ -67,7 +65,7 @@ if __name__ == '__main__':
 
                 for worker_id, parent in enumerate(parents):
                     s_, r, d = parent.recv()
-                    total_rewards[worker_id, t] = sign(r)
+                    total_rewards[worker_id, t] = r
                     total_dones[worker_id, t] = d
                     next_states[worker_id] = s_
 
@@ -87,7 +85,7 @@ if __name__ == '__main__':
 
             training_logs = brain.train(np.concatenate(total_states),
                                         np.concatenate(total_actions).astype(np.int32),
-                                        total_rewards,
+                                        np.sign(total_rewards),
                                         total_dones,
                                         total_values,
                                         next_values)
