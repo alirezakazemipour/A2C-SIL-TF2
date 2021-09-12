@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     brain = Brain(**params)
     if not params["do_test"]:
-        experiment = Experiment() # Add your Comet configs!
+        experiment = Experiment()  # Add your Comet configs!
         logger = Logger(brain, experiment=experiment, **params)
 
         if not params["train_from_scratch"]:

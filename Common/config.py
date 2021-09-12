@@ -32,7 +32,7 @@ def get_params():
                       "n_sil_updates": 4,
                       "sil_batch_size": 512,
                       "w_vloss": 0.01,
-                      "n_workers": 2,
+                      "n_workers": 16,
                       "seed": 123
                       }
 
