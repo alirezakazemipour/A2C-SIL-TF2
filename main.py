@@ -8,10 +8,18 @@ import numpy as np
 import gym
 import time
 import os
+import tensorflow as tf
 
 if __name__ == '__main__':
     params = get_params()
     os.environ["PYTHONHASHSEED"] = str(params["seed"])
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError as e:
+            print(e)
     test_env = gym.make(params["env_name"])
     params.update({"n_actions": test_env.action_space.n})
     test_env.close()

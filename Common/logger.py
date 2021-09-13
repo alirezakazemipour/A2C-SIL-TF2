@@ -54,6 +54,9 @@ class Logger:
 
     def log_iteration(self, *args):
         iteration, beta, training_logs = args
+
+        if np.isnan(np.mean(training_logs)):
+            raise RuntimeError("NN has output NaNs!")
         self.running_training_logs = self.exp_avg(self.running_training_logs, np.array(training_logs))
 
         if iteration % (self.config["interval"] // 3) == 0:
