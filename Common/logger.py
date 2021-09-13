@@ -19,11 +19,8 @@ class Logger:
         self.duration = 0
         self.episode = 0
         self.episode_reward = 0
-        self.episode_rewards = []
         self.running_reward = 0
         self.max_episode_rewards = -np.inf
-        self.std_episode_rewards = 0
-        self.mean_episode_rewards = 0
         self.episode_length = 0
         self.moving_avg_window = 10
         self.running_training_logs = 0
@@ -35,6 +32,7 @@ class Logger:
         sys.stdout.write("\033[;1m")  # bold code
         print("params:", self.config)
         sys.stdout.write("\033[0;0m")  # Reset code
+
         if not self.config["do_test"] and self.config["train_from_scratch"]:
             self.create_wights_folder()
             self.experiment.log_parameters(self.config)
@@ -65,8 +63,6 @@ class Logger:
         self.experiment.log_metric("Running Episode Reward", self.running_reward, step=self.episode)
         self.experiment.log_metric("Running last 10 Reward", self.running_last_10_r, step=self.episode)
         self.experiment.log_metric("Max Episode Reward", self.max_episode_rewards, step=self.episode)
-        self.experiment.log_metric("Std Episode Reward", self.std_episode_rewards, step=self.episode)
-        self.experiment.log_metric("Mean Episode Reward", self.mean_episode_rewards, step=self.episode)
         self.experiment.log_metric("Episode Length", self.episode_length, step=self.episode)
         self.experiment.log_metric("Running PG Loss", self.running_training_logs[0], step=iteration)
         self.experiment.log_metric("Running Value Loss", self.running_training_logs[1], step=iteration)
@@ -103,10 +99,7 @@ class Logger:
     def log_episode(self, *args):
         self.episode, self.episode_reward, episode_length = args
 
-        self.episode_rewards.append(self.episode_reward)
         self.max_episode_rewards = max(self.max_episode_rewards, self.episode_reward)
-        self.std_episode_rewards = np.std(np.asarray(self.episode_rewards))
-        self.mean_episode_rewards = sum(self.episode_rewards) / len(self.episode_rewards)
 
         if self.episode == 1:
             self.running_reward = self.episode_reward
