@@ -30,5 +30,4 @@ class NN(Model, ABC):
         value = self.value(x)
         pi = tf.nn.softmax(self.logits(x))
         dist = Categorical(probs=pi)
-
         return dist, value
