@@ -7,7 +7,7 @@ class Worker(Process):
         super(Worker, self).__init__()
         self.id = id
         self.config = config
-        self.env = make_atari(self.config["env_name"], episodic_life=False, seed=self.config["seed"])
+        self.env = make_atari(self.config["env_name"], episodic_life=False, seed=self.config["seed"] + self.id)
         self.conn = conn
         self.reward = 0
         self.episode_buffer = []
@@ -26,7 +26,7 @@ class Worker(Process):
         return stack_states(state, obs, True)
 
     def run(self):
-        print(f"W: {self.id} started.")
+        print(f"W{self.id}: started.")
         state = self.reset()
         hx = np.zeros((1, 256))
         cx = np.zeros((1, 256))
@@ -36,7 +36,7 @@ class Worker(Process):
             next_obs, reward, done, info = self.env.step(action)
             if reward > self.reward:
                 self.reward = reward
-                print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
+                print("\n🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
                 print(f"W{self.id} got a positive reward!!!")
                 print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
             next_state = stack_states(state, next_obs, False)

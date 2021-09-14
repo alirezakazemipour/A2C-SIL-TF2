@@ -78,7 +78,7 @@ class Logger:
         self.off()
         if iteration % self.config["interval"] == 0:
             ram = psutil.virtual_memory()
-            print("Iter: {}| "
+            print("\nIter: {}| "
                   "E: {}| "
                   "E_Reward: {:.1f}| "
                   "E_Running_Reward: {:.1f}| "
