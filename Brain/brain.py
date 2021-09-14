@@ -16,8 +16,8 @@ class Brain:
 
     def extract_rewards(self, *x):
         batch = self.config["transition"](*zip(*x))
-        rewards = np.array(batch.reward).reshape(-1, 1)
-        dones = np.array(batch.done).reshape(-1, 1)
+        rewards = np.array(batch.reward).reshape(1, -1)
+        dones = np.array(batch.done).reshape(1, -1)
         return rewards, dones
 
     def unpack_batch(self, x):
@@ -25,8 +25,8 @@ class Brain:
 
         states = np.concatenate(batch.s).reshape(-1, *self.config["state_shape"])
         actions = np.array(batch.a)
-        returns = np.concatenate(batch.R).astype(np.float32)
-        advs = np.concatenate(batch.adv).astype(np.float32)
+        returns = np.array(batch.R, dtype=np.float32)
+        advs = np.array(batch.adv, dtype=np.float32)
         return states, actions, returns, advs
 
     def add_to_memory(self, *trajectory):

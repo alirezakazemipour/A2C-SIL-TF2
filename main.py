@@ -26,7 +26,7 @@ if __name__ == '__main__':
     del test_env
     params.update({"rollout_length": 80 // params["n_workers"]})
     params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value'))})
-    params.update({"final_annealing_beta_steps": params["total_iterations"] // 20})
+    params.update({"final_annealing_beta_steps": params["total_iterations"] // 10})
 
     brain = Brain(**params)
     if not params["do_test"]:
