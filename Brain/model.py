@@ -2,7 +2,7 @@ from abc import ABC
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense
 from tensorflow_probability.python.distributions import Categorical
-
+import tensorflow as tf
 
 class NN(Model, ABC):
     #  https://github.com/openai/baselines/blob/master/baselines/ppo1/cnn_policy.py
@@ -17,7 +17,7 @@ class NN(Model, ABC):
         self.flatten = Flatten()
         self.fc = Dense(units=512, activation="relu", kernel_initializer="he_normal")
         self.value = Dense(units=1)
-        self.pi = Dense(units=self.n_actions, activation="softmax")
+        self.logits = Dense(units=self.n_actions)
 
     def call(self, x, training=None, mask=None):
         x = x / 255
@@ -27,6 +27,6 @@ class NN(Model, ABC):
         x = self.flatten(x)
         x = self.fc(x)
         value = self.value(x)
-        pi = self.pi(x)
-        dist = Categorical(probs=pi)
+        probs = tf.nn.softmax(self.logits(x))
+        dist = Categorical(probs=probs)
         return dist, value

@@ -9,6 +9,7 @@ class Worker(Process):
         self.config = config
         self.env = make_atari(self.config["env_name"], episodic_life=False, seed=self.config["seed"])
         self.conn = conn
+        self.reward = 0
         self.episode_buffer = []
         self.sign = lambda x: bool(x > 0) - bool(x < 0)
         self.reset()
@@ -31,6 +32,11 @@ class Worker(Process):
             self.conn.send(state)
             action, value = self.conn.recv()
             next_obs, reward, done, info = self.env.step(action)
+            if reward > self.reward:
+                self.reward = reward
+                print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
+                print(f"W{self.id} got a positive reward!!!")
+                print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
             next_state = stack_states(state, next_obs, False)
             self.conn.send((next_state, reward, done))
             self.episode_buffer.append((state, action, self.sign(reward), done, value))
