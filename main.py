@@ -25,7 +25,7 @@ if __name__ == '__main__':
     test_env.close()
     del test_env
     params.update({"rollout_length": 80 // params["n_workers"]})
-    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value'))})
+    params.update({"transition": namedtuple('Transition', ('state', 'action', 'reward', 'done', 'value', 'hx', 'cx'))})
     params.update({"final_annealing_beta_steps": params["total_iterations"] // 8})
 
     brain = Brain(**params)
@@ -49,11 +49,15 @@ if __name__ == '__main__':
         rollout_base_shape = params["n_workers"], params["rollout_length"]
 
         total_states = np.zeros(rollout_base_shape + params["state_shape"], dtype=np.uint8)
+        total_hxs = np.zeros(rollout_base_shape + (256,))
+        total_cxs = np.zeros(rollout_base_shape + (256,))
         total_actions = np.zeros(rollout_base_shape, dtype=np.uint8)
         total_rewards = np.zeros(rollout_base_shape)
         total_dones = np.zeros(rollout_base_shape, dtype=np.bool)
         total_values = np.zeros(rollout_base_shape)
         next_states = np.zeros((rollout_base_shape[0],) + params["state_shape"], dtype=np.uint8)
+        next_hxs = np.zeros((rollout_base_shape[0],) + (256,), dtype=np.uint8)
+        next_cxs = np.zeros((rollout_base_shape[0],) + (256,), dtype=np.uint8)
 
         logger.on()
         episode_reward = 0
@@ -63,13 +67,21 @@ if __name__ == '__main__':
 
             for t in range(params["rollout_length"]):
                 for worker_id, parent in enumerate(parents):
-                    s = parent.recv()
+                    s, hx, cx = parent.recv()
                     total_states[worker_id, t] = s
+                    total_hxs[worker_id, t] = hx
+                    total_hxs[worker_id, t] = cx
 
-                total_actions[:, t], total_values[:, t] = brain.get_actions_and_values(total_states[:, t], batch=True)
+                total_actions[:, t], total_values[:, t], next_hxs, next_cxs = \
+                    brain.get_actions_and_values(total_states[:, t],
+                                                 total_hxs[:, t],
+                                                 total_cxs[:, t],
+                                                 batch=True
+                                                 )
 
-                for parent, a, v in zip(parents, total_actions[:, t], total_values[:, t]):
-                    parent.send((int(a), v))
+                for parent, a, v, hx, cx in zip(parents, total_actions[:, t], total_values[:, t], next_hxs[:],
+                                                next_cxs[:]):
+                    parent.send((int(a), v, hx, cx))
 
                 for worker_id, parent in enumerate(parents):
                     s_, r, d = parent.recv()
@@ -89,9 +101,11 @@ if __name__ == '__main__':
                     episode_reward = 0
                     episode_length = 0
 
-            _, next_values = brain.get_actions_and_values(next_states, batch=True)
+            _, next_values, *_ = brain.get_actions_and_values(next_states, next_hxs, next_cxs, batch=True)
 
             training_logs = brain.train(np.concatenate(total_states),
+                                        np.concatenate(total_hxs),
+                                        np.concatenate(total_cxs),
                                         np.concatenate(total_actions).astype(np.int32),
                                         np.sign(total_rewards),
                                         total_dones,

@@ -24,10 +24,12 @@ class Brain:
         batch = self.memory.transition(*zip(*x))
 
         states = np.concatenate(batch.s).reshape(-1, *self.config["state_shape"])
+        hxs = np.concatenate(batch.hx).reshape(-1, 256)
+        cxs = np.concatenate(batch.cx).reshape(-1, 256)
         actions = np.array(batch.a)
         returns = np.array(batch.R, dtype=np.float32)
         advs = np.array(batch.adv, dtype=np.float32)
-        return states, actions, returns, advs
+        return states, hxs, cxs, actions, returns, advs
 
     def add_to_memory(self, *trajectory):
         rewards, dones = self.extract_rewards(*trajectory)
@@ -36,24 +38,26 @@ class Brain:
             s, a, *_, v = transition
             self.memory.add(s, a, R, R - v)
 
-    @tf.function
-    def feedforward_model(self, x):
-        dist, value = self.policy(x)
+    # @tf.function
+    def feedforward_model(self, x, hx, cx):
+        dist, value, hx, cx = self.policy((x, hx, cx))
         action = dist.sample()
-        return action, value
+        return action, value, hx, cx
 
-    def get_actions_and_values(self, state, batch=False):
+    def get_actions_and_values(self, state, hx, cx, batch=False):
         if not batch:
             state = np.expand_dims(state, 0)
-        a, v = self.feedforward_model(state)
-        return a.numpy(), v.numpy().squeeze()
+        a, v, hx, cx = self.feedforward_model(state, hx, cx)
+        return a.numpy(), v.numpy().squeeze(), hx.numpy(), cx.numpy()
 
-    def train(self, states, actions, rewards, dones, values, next_values):
+    def train(self, states, hxs, cxs, actions, rewards, dones, values, next_values):
         returns = self.get_returns(rewards, next_values, dones, n=self.config["n_workers"])
         values = np.hstack(values)
         advs = (returns - values).astype(np.float32)
 
         a_loss, v_loss, ent, g_norm = self.optimize(states,
+                                                    hxs,
+                                                    cxs,
                                                     actions,
                                                     returns,
                                                     advs,
@@ -69,7 +73,7 @@ class Brain:
         if len(self.memory) < self.config["sil_batch_size"]:
             return 0, 0, 0, 0
         batch, weights, indices = self.memory.sample(self.config["sil_batch_size"], beta)
-        states, actions, returns, advs = self.unpack_batch(batch)
+        states, hxs, cxs, actions, returns, advs = self.unpack_batch(batch)
         masks = (advs >= 0).astype("float32")
         batch_size = np.sum(masks)
         if batch_size != 0:
@@ -87,9 +91,9 @@ class Brain:
             return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
     @tf.function
-    def optimize(self, state, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
+    def optimize(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
         with tf.GradientTape() as tape:
-            dist, value = self.policy(state)
+            dist, value, *_ = self.policy((state, hx, cx))
             entropy = tf.reduce_sum(dist.entropy() * weights * masks) / batch_size
             log_prob = dist.log_prob(action)
             actor_loss = -tf.reduce_sum(log_prob * adv * weights) / batch_size

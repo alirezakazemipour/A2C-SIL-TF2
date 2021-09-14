@@ -28,9 +28,11 @@ class Worker(Process):
     def run(self):
         print(f"W: {self.id} started.")
         state = self.reset()
+        hx = np.zeros((1, 256))
+        cx = np.zeros((1, 256))
         while True:
-            self.conn.send(state)
-            action, value = self.conn.recv()
+            self.conn.send((state, hx, cx))
+            action, value, next_hx, next_cx = self.conn.recv()
             next_obs, reward, done, info = self.env.step(action)
             if reward > self.reward:
                 self.reward = reward
@@ -39,9 +41,13 @@ class Worker(Process):
                 print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
             next_state = stack_states(state, next_obs, False)
             self.conn.send((next_state, reward, done))
-            self.episode_buffer.append((state, action, self.sign(reward), done, value))
+            self.episode_buffer.append((state, action, self.sign(reward), done, value, hx, cx))
             state = next_state
+            hx = next_hx
+            cx = next_cx
             if done:
                 self.conn.send(self.episode_buffer)
                 self.episode_buffer = []
                 state = self.reset()
+                hx = np.zeros((1, 256))
+                cx = np.zeros((1, 256))
