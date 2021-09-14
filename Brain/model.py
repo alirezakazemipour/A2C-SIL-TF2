@@ -2,7 +2,7 @@ from abc import ABC
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense,LSTMCell
 from tensorflow_probability.python.distributions import Categorical
-import tensorflow as tf
+
 
 class NN(Model, ABC):
     #  https://github.com/openai/baselines/blob/master/baselines/ppo1/cnn_policy.py
@@ -26,6 +26,5 @@ class NN(Model, ABC):
         x = self.flatten(x)
         hx, cx = self.lstm(x, (hx, cx))
         value = self.value(hx)
-        probs = tf.nn.softmax(self.logits(hx))
-        dist = Categorical(probs=probs)
+        dist = Categorical(logits=self.logits(hx))
         return dist, value, cx[0], cx[1]

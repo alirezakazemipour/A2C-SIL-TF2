@@ -36,9 +36,9 @@ class Worker(Process):
             next_obs, reward, done, info = self.env.step(action)
             if reward > self.reward:
                 self.reward = reward
-                print("\n🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
-                print(f"W{self.id} got a positive reward!!!")
-                print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
+                print("\n🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
+                print(f"W{self.id} got a reward!!!")
+                print("🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")
             next_state = stack_states(state, next_obs, False)
             self.conn.send((next_state, reward, done))
             self.episode_buffer.append((state, action, self.sign(reward), done, value, hx, cx))

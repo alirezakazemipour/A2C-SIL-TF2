@@ -1,6 +1,6 @@
 import argparse
-import socket
 import os
+import warnings
 
 
 def get_params():
@@ -34,10 +34,12 @@ def get_params():
                       "n_sil_updates": 4,
                       "sil_batch_size": 512,
                       "w_vloss": 0.01,
-                      "n_workers": 2 if socket.gethostname() == "Alireza" else os.cpu_count(),
+                      "n_workers": os.cpu_count(),
                       "seed": 123
                       }
 
     # endregion
     total_params = {**vars(parser_params), **default_params}
+    if default_params["n_workers"] > os.cpu_count():
+        warnings.warn("🚨You're using more workers than your machine's CPU cores!🚨")
     return total_params

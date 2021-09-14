@@ -41,31 +41,36 @@ class Brain:
     @tf.function
     def feedforward_model(self, x, hx, cx):
         dist, value, hx, cx = self.policy((x, hx, cx))
-        action = dist.sample()
-        return action, value, hx, cx
+        # action = dist.sample()
+        return dist.logits, value, hx, cx
 
     def get_actions_and_values(self, state, hx, cx, batch=False):
         if not batch:
             state = np.expand_dims(state, 0)
-        a, v, hx, cx = self.feedforward_model(state, hx, cx)
-        return a.numpy(), v.numpy().squeeze(), hx.numpy(), cx.numpy()
+        logits, v, hx, cx = self.feedforward_model(tf.constant(state), tf.constant(hx), tf.constant(cx))
+        action = tf.random.categorical(logits, num_samples=1)
+        return action.numpy().squeeze(), v.numpy().squeeze(), hx.numpy(), cx.numpy()
 
     def train(self, states, hxs, cxs, actions, rewards, dones, values, next_values):
         returns = self.get_returns(rewards, next_values, dones, n=self.config["n_workers"])
         values = np.hstack(values)
         advs = (returns - values).astype(np.float32)
 
-        a_loss, v_loss, ent, g_norm = self.optimize(states,
-                                                    hxs,
-                                                    cxs,
-                                                    actions,
-                                                    returns,
-                                                    advs,
-                                                    weights=1,
-                                                    masks=1,
-                                                    batch_size=self.config["rollout_length"] * self.config["n_workers"],
-                                                    critic_coeff=self.config["critic_coeff"],
-                                                    ent_coeff=self.config["ent_coeff"])
+        a_loss, v_loss, ent, g_norm = self.optimize(tf.constant(states),
+                                                    tf.constant(hxs),
+                                                    tf.constant(cxs),
+                                                    tf.constant(actions),
+                                                    tf.constant(returns),
+                                                    tf.constant(advs),
+                                                    weights=tf.constant(1, dtype=tf.float32),
+                                                    masks=tf.constant(1, dtype=tf.float32),
+                                                    batch_size=tf.constant(
+                                                        self.config["rollout_length"] * self.config["n_workers"],
+                                                        dtype=tf.float32),
+                                                    critic_coeff=tf.constant(self.config["critic_coeff"],
+                                                                             dtype=tf.float32),
+                                                    ent_coeff=tf.constant(self.config["ent_coeff"], dtype=tf.float32)
+                                                    )
 
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
@@ -77,17 +82,19 @@ class Brain:
         masks = (advs >= 0).astype("float32")
         batch_size = np.sum(masks)
         if batch_size != 0:
-            a_loss, v_loss, ent, g_norm = self.optimize(states,
-                                                        hxs,
-                                                        cxs,
-                                                        actions,
-                                                        returns,
-                                                        advs * masks,
-                                                        weights=weights,
-                                                        masks=masks,
-                                                        batch_size=batch_size,
-                                                        critic_coeff=self.config["w_vloss"],
-                                                        ent_coeff=0)
+            a_loss, v_loss, ent, g_norm = self.optimize(tf.constant(states),
+                                                        tf.constant(hxs),
+                                                        tf.constant(cxs),
+                                                        tf.constant(actions),
+                                                        tf.constant(returns),
+                                                        tf.constant(advs * masks),
+                                                        weights=tf.constant(weights),
+                                                        masks=tf.constant(masks),
+                                                        batch_size=tf.constant(batch_size, dtype=tf.float32),
+                                                        critic_coeff=tf.constant(self.config["w_vloss"],
+                                                                                 dtype=tf.float32),
+                                                        ent_coeff=tf.constant(0, dtype=tf.float32)
+                                                        )
             self.memory.update_priorities(indices, advs * masks + 1e-6)
 
             return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()

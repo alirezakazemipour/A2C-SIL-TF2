@@ -73,11 +73,7 @@ if __name__ == '__main__':
                     total_hxs[worker_id, t] = cx
 
                 total_actions[:, t], total_values[:, t], next_hxs, next_cxs = \
-                    brain.get_actions_and_values(total_states[:, t],
-                                                 total_hxs[:, t],
-                                                 total_cxs[:, t],
-                                                 batch=True
-                                                 )
+                    brain.get_actions_and_values(total_states[:, t], total_hxs[:, t], total_cxs[:, t], batch=True)
 
                 for parent, a, v, hx, cx in zip(parents, total_actions[:, t], total_values[:, t], next_hxs[:],
                                                 next_cxs[:]):
