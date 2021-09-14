@@ -24,8 +24,8 @@ class Brain:
         batch = self.memory.transition(*zip(*x))
 
         states = np.concatenate(batch.s).reshape(-1, *self.config["state_shape"])
-        hxs = np.concatenate(batch.hx).reshape(-1, 256)
-        cxs = np.concatenate(batch.cx).reshape(-1, 256)
+        hxs = np.vstack(batch.hx)
+        cxs = np.vstack(batch.cx)
         actions = np.array(batch.a)
         returns = np.array(batch.R, dtype=np.float32)
         advs = np.array(batch.adv, dtype=np.float32)
@@ -35,10 +35,10 @@ class Brain:
         rewards, dones = self.extract_rewards(*trajectory)
         returns = self.get_returns(rewards, np.asarray(0), dones, 1)
         for transition, R in zip(trajectory, returns):
-            s, a, *_, v = transition
-            self.memory.add(s, a, R, R - v)
+            s, a, *_, v, hx, cx = transition
+            self.memory.add(s, hx, cx, a, R, R - v)
 
-    # @tf.function
+    @tf.function
     def feedforward_model(self, x, hx, cx):
         dist, value, hx, cx = self.policy((x, hx, cx))
         action = dist.sample()
@@ -78,6 +78,8 @@ class Brain:
         batch_size = np.sum(masks)
         if batch_size != 0:
             a_loss, v_loss, ent, g_norm = self.optimize(states,
+                                                        hxs,
+                                                        cxs,
                                                         actions,
                                                         returns,
                                                         advs * masks,

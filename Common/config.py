@@ -34,7 +34,7 @@ def get_params():
                       "n_sil_updates": 4,
                       "sil_batch_size": 512,
                       "w_vloss": 0.01,
-                      "n_workers": 1 if socket.gethostname() == "Alireza" else os.cpu_count(),
+                      "n_workers": 2 if socket.gethostname() == "Alireza" else os.cpu_count(),
                       "seed": 123
                       }
 

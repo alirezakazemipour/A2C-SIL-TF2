@@ -9,7 +9,7 @@ class ReplayMemory:
         self.capacity = capacity
         self.max_priority = 1
         self.alpha = alpha
-        self.transition = namedtuple("sil_batch", ("s", "a", "R", "adv"))
+        self.transition = namedtuple("sil_batch", ("s", "hx", "cx", "a", "R", "adv"))
         self.memory = []
         random.seed(seed)
 
