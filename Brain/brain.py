@@ -31,7 +31,7 @@ class Brain:
 
     def add_to_memory(self, *trajectory):
         rewards, dones = self.extract_rewards(*trajectory)
-        returns = self.get_returns([rewards], [0], [dones], 1)
+        returns = self.get_returns(rewards, np.asarray(0), dones, 1)
         for transition, R in zip(trajectory, returns):
             s, a, *_, v = transition
             self.memory.add(s, a, R, R - v)
@@ -103,7 +103,9 @@ class Brain:
 
         return actor_loss, critic_loss, entropy, grad_norm
 
-    def get_returns(self, rewards, next_values, dones, n):
+    def get_returns(self, rewards: np.ndarray, next_values: np.ndarray, dones: np.ndarray, n: int) -> np.ndarray:
+        if next_values.shape == ():
+            next_values = next_values[None]
 
         returns = [[] for _ in range(n)]
         for worker in range(n):

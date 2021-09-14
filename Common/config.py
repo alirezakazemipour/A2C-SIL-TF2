@@ -9,7 +9,7 @@ def get_params():
 
     parser.add_argument("--env_name", default="FreewayNoFrameskip-v4", type=str, help="Name of the environment.")
     parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
-    parser.add_argument("--mem_size", default=60000, type=int, help="The SIL's memory size.")
+    parser.add_argument("--mem_size", default=100000, type=int, help="The SIL's memory size.")
     parser.add_argument("--interval", default=1500, type=int,
                         help="The interval specifies how often different parameters should be saved and printed,"
                              " counted by iterations.")
@@ -26,7 +26,7 @@ def get_params():
     default_params = {"state_shape": (84, 84, 4),
                       "lr": 7e-4,
                       "alpha": 0.6,
-                      "beta": 0.4,
+                      "beta": 0.1,
                       "gamma": 0.99,
                       "ent_coeff": 0.01,
                       "critic_coeff": 0.5,
@@ -34,7 +34,7 @@ def get_params():
                       "n_sil_updates": 4,
                       "sil_batch_size": 512,
                       "w_vloss": 0.01,
-                      "n_workers": 2 if socket.gethostname() == "Alireza" else os.cpu_count(),
+                      "n_workers": 1 if socket.gethostname() == "Alireza" else os.cpu_count(),
                       "seed": 123
                       }
 

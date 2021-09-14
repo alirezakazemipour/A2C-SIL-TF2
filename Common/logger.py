@@ -7,6 +7,7 @@ from collections import deque
 import json
 import psutil
 import sys
+import math
 
 
 class Logger:
@@ -55,6 +56,10 @@ class Logger:
 
         if np.isnan(np.mean(training_logs[:-1])):
             raise RuntimeError(f"NN has output NaNs! {training_logs}")
+        if math.isnan(training_logs[-1]):
+            training_logs = list(training_logs[:-1])
+            training_logs.append(self.running_training_logs[-1])
+
         self.running_training_logs = self.exp_avg(self.running_training_logs, np.array(training_logs))
 
         if iteration % (self.config["interval"] // 3) == 0:
