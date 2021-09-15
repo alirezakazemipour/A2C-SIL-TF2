@@ -34,6 +34,7 @@ class Worker(Process):
             self.conn.send((state, hx, cx))
             action, value, next_hx, next_cx = self.conn.recv()
             next_obs, reward, done, info = self.env.step(action)
+            # self.render()
             if reward > self.reward:
                 self.reward = reward
                 print("\n🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁")

@@ -1,7 +1,6 @@
 from .model import NN
 from .experience_replay import ReplayMemory
 from Common import explained_variance
-from tensorflow.keras.optimizers import Adam
 import tensorflow as tf
 import numpy as np
 
@@ -11,8 +10,8 @@ class Brain:
         self.config = config
         tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
-        self.policy.build(input_shape=[(None, *self.config["state_shape"]), (None, 256), (None, 256)])
-        self.optimizer = Adam(learning_rate=self.config["lr"])
+        self.policy([tf.zeros((1, *self.config["state_shape"])), tf.zeros((1, 256)), tf.zeros((1, 256))])
+        self.optimizer = tf.optimizers.Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
     def extract_rewards(self, *x):
@@ -66,20 +65,23 @@ class Brain:
         advs = (returns - values).astype(np.float32)
 
         a_loss, v_loss, ent, g_norm, grads = self.optimize(tf.constant(states),
-                                                    tf.constant(hxs, dtype=tf.float32),
-                                                    tf.constant(cxs, dtype=tf.float32),
-                                                    tf.constant(actions),
-                                                    tf.constant(returns),
-                                                    tf.constant(advs),
-                                                    weights=tf.constant(np.ones(actions.shape[0]), dtype=tf.float32),
-                                                    masks=tf.constant(np.ones(actions.shape[0]), dtype=tf.float32),
-                                                    batch_size=tf.constant(
-                                                        self.config["rollout_length"] * self.config["n_workers"],
-                                                        dtype=tf.float32),
-                                                    critic_coeff=tf.constant(self.config["critic_coeff"],
+                                                           tf.constant(hxs, dtype=tf.float32),
+                                                           tf.constant(cxs, dtype=tf.float32),
+                                                           tf.constant(actions),
+                                                           tf.constant(returns),
+                                                           tf.constant(advs),
+                                                           weights=tf.constant(np.ones(actions.shape[0]),
+                                                                               dtype=tf.float32),
+                                                           masks=tf.constant(np.ones(actions.shape[0]),
                                                                              dtype=tf.float32),
-                                                    ent_coeff=tf.constant(self.config["ent_coeff"], dtype=tf.float32)
-                                                    )
+                                                           batch_size=tf.constant(
+                                                               self.config["rollout_length"] * self.config["n_workers"],
+                                                               dtype=tf.float32),
+                                                           critic_coeff=tf.constant(self.config["critic_coeff"],
+                                                                                    dtype=tf.float32),
+                                                           ent_coeff=tf.constant(self.config["ent_coeff"],
+                                                                                 dtype=tf.float32)
+                                                           )
         self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
@@ -92,18 +94,18 @@ class Brain:
         batch_size = np.sum(masks)
         if batch_size != 0:
             a_loss, v_loss, ent, g_norm, grads = self.optimize(tf.constant(states),
-                                                        tf.constant(hxs, dtype=tf.float32),
-                                                        tf.constant(cxs, dtype=tf.float32),
-                                                        tf.constant(actions),
-                                                        tf.constant(returns),
-                                                        tf.constant(advs * masks),
-                                                        weights=tf.constant(weights),
-                                                        masks=tf.constant(masks),
-                                                        batch_size=tf.constant(batch_size, dtype=tf.float32),
-                                                        critic_coeff=tf.constant(self.config["w_vloss"],
-                                                                                 dtype=tf.float32),
-                                                        ent_coeff=tf.constant(0, dtype=tf.float32)
-                                                        )
+                                                               tf.constant(hxs, dtype=tf.float32),
+                                                               tf.constant(cxs, dtype=tf.float32),
+                                                               tf.constant(actions),
+                                                               tf.constant(returns),
+                                                               tf.constant(advs * masks),
+                                                               weights=tf.constant(weights),
+                                                               masks=tf.constant(masks),
+                                                               batch_size=tf.constant(batch_size, dtype=tf.float32),
+                                                               critic_coeff=tf.constant(self.config["w_vloss"],
+                                                                                        dtype=tf.float32),
+                                                               ent_coeff=tf.constant(0., dtype=tf.float32)
+                                                               )
             self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
             self.memory.update_priorities(indices, advs * masks + 1e-6)
             return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
