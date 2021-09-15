@@ -8,6 +8,7 @@ import json
 import psutil
 import sys
 import math
+import tensorflow as tf
 
 
 class Logger:
@@ -127,7 +128,8 @@ class Logger:
                           "running_training_logs": list(self.running_training_logs)
                           }
 
-        self.brain.policy.save_weights("Models/" + self.weight_dir + "/weights.h5", save_format="h5")
+        # checkpoint = tf.train.Checkpoint(model=self.brain.policy)
+        # checkpoint.save(self.brain.policy, "Models/" + self.weight_dir + "/weights")
         with open("Models/" + self.weight_dir + "/stats.json", "w") as f:
             f.write(json.dumps(stats_to_write))
             f.flush()
@@ -140,8 +142,8 @@ class Logger:
         model_dir.sort()
         self.weight_dir = model_dir[-1].split(os.sep)[-1]
 
-        self.brain.policy.build((None, *self.config["state_shape"]))
-        self.brain.policy.load_weights(model_dir[-1] + "/weights.h5")
+        # checkpoint = tf.train.Checkpoint(model=self.brain.policy)
+        # checkpoint.restore(model_dir[-1] + "/weights")
         with open(model_dir[-1] + "/stats.json", "r") as f:
             stats = json.load(f)
         self.running_last_10_r = stats["running_last_10_r"]

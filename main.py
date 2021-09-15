@@ -99,14 +99,14 @@ if __name__ == '__main__':
 
             _, next_values, *_ = brain.get_actions_and_values(next_states, next_hxs, next_cxs, batch=True)
 
-            training_logs = brain.train(np.concatenate(total_states),
-                                        np.concatenate(total_hxs),
-                                        np.concatenate(total_cxs),
-                                        np.concatenate(total_actions).astype(np.int64),
-                                        np.sign(total_rewards),
-                                        total_dones,
-                                        total_values,
-                                        next_values)
+            training_logs = brain.train_a2c(np.concatenate(total_states),
+                                            np.concatenate(total_hxs),
+                                            np.concatenate(total_cxs),
+                                            np.concatenate(total_actions).astype(np.int64),
+                                            np.sign(total_rewards),
+                                            total_dones,
+                                            total_values,
+                                            next_values)
 
             beta = min(1.0, params["beta"] + iteration * (1.0 - params["beta"]) / params["final_annealing_beta_steps"])
             for m in range(params["n_sil_updates"]):
