@@ -15,7 +15,7 @@ class NN(Model, ABC):
         self.conv2 = Conv2D(filters=32, kernel_size=4, strides=2, activation="relu", kernel_initializer="he_normal")
         self.flatten = Flatten()
         self.lstm = LSTMCell(units=256)
-        self.value = Dense(units=1)
+        self.value = Dense(units=1, name="value_layer")
         self.logits = Dense(units=self.n_actions)
 
     def call(self, inputs, training=None, mask=None):

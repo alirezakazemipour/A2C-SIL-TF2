@@ -102,7 +102,7 @@ if __name__ == '__main__':
             training_logs = brain.train(np.concatenate(total_states),
                                         np.concatenate(total_hxs),
                                         np.concatenate(total_cxs),
-                                        np.concatenate(total_actions).astype(np.int32),
+                                        np.concatenate(total_actions).astype(np.int64),
                                         np.sign(total_rewards),
                                         total_dones,
                                         total_values,

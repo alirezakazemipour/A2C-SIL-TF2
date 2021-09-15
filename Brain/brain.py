@@ -11,6 +11,7 @@ class Brain:
         self.config = config
         tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
+        self.policy.build(input_shape=[(None, *self.config["state_shape"]), (None, 256), (None, 256)])
         self.optimizer = Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
@@ -38,16 +39,24 @@ class Brain:
             s, a, *_, v, hx, cx = transition
             self.memory.add(s, hx, cx, a, R, R - v)
 
-    @tf.function
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None, 84, 84, 4), dtype=tf.uint8),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32)
+                                  ]
+                 )
     def feedforward_model(self, x, hx, cx):
         dist, value, hx, cx = self.policy((x, hx, cx))
         # action = dist.sample()
+        # print(value)
         return dist.logits, value, hx, cx
 
     def get_actions_and_values(self, state, hx, cx, batch=False):
         if not batch:
             state = np.expand_dims(state, 0)
-        logits, v, hx, cx = self.feedforward_model(tf.constant(state), tf.constant(hx), tf.constant(cx))
+        logits, v, hx, cx = self.feedforward_model(tf.constant(state),
+                                                   tf.constant(hx, dtype=tf.float32),
+                                                   tf.constant(cx, dtype=tf.float32)
+                                                   )
         action = tf.random.categorical(logits, num_samples=1)
         return action.numpy().squeeze(), v.numpy().squeeze(), hx.numpy(), cx.numpy()
 
@@ -56,14 +65,14 @@ class Brain:
         values = np.hstack(values)
         advs = (returns - values).astype(np.float32)
 
-        a_loss, v_loss, ent, g_norm = self.optimize(tf.constant(states),
-                                                    tf.constant(hxs),
-                                                    tf.constant(cxs),
+        a_loss, v_loss, ent, g_norm, grads = self.optimize(tf.constant(states),
+                                                    tf.constant(hxs, dtype=tf.float32),
+                                                    tf.constant(cxs, dtype=tf.float32),
                                                     tf.constant(actions),
                                                     tf.constant(returns),
                                                     tf.constant(advs),
-                                                    weights=tf.constant(1, dtype=tf.float32),
-                                                    masks=tf.constant(1, dtype=tf.float32),
+                                                    weights=tf.constant(np.ones(actions.shape[0]), dtype=tf.float32),
+                                                    masks=tf.constant(np.ones(actions.shape[0]), dtype=tf.float32),
                                                     batch_size=tf.constant(
                                                         self.config["rollout_length"] * self.config["n_workers"],
                                                         dtype=tf.float32),
@@ -71,7 +80,7 @@ class Brain:
                                                                              dtype=tf.float32),
                                                     ent_coeff=tf.constant(self.config["ent_coeff"], dtype=tf.float32)
                                                     )
-
+        self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
     def train_sil(self, beta):
@@ -82,9 +91,9 @@ class Brain:
         masks = (advs >= 0).astype("float32")
         batch_size = np.sum(masks)
         if batch_size != 0:
-            a_loss, v_loss, ent, g_norm = self.optimize(tf.constant(states),
-                                                        tf.constant(hxs),
-                                                        tf.constant(cxs),
+            a_loss, v_loss, ent, g_norm, grads = self.optimize(tf.constant(states),
+                                                        tf.constant(hxs, dtype=tf.float32),
+                                                        tf.constant(cxs, dtype=tf.float32),
                                                         tf.constant(actions),
                                                         tf.constant(returns),
                                                         tf.constant(advs * masks),
@@ -95,12 +104,25 @@ class Brain:
                                                                                  dtype=tf.float32),
                                                         ent_coeff=tf.constant(0, dtype=tf.float32)
                                                         )
+            self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
             self.memory.update_priorities(indices, advs * masks + 1e-6)
-
             return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy()
 
-    @tf.function
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None, 84, 84, 4), dtype=tf.uint8),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.int64),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32)
+                                  ]
+                 )
     def optimize(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
+        # print(batch_size)
         with tf.GradientTape() as tape:
             dist, value, *_ = self.policy((state, hx, cx))
             entropy = tf.reduce_sum(dist.entropy() * weights * masks) / batch_size
@@ -112,9 +134,8 @@ class Brain:
 
         grads = tape.gradient(total_loss, self.policy.trainable_variables)
         grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])
-        self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
 
-        return actor_loss, critic_loss, entropy, grad_norm
+        return actor_loss, critic_loss, entropy, grad_norm, grads
 
     def get_returns(self, rewards: np.ndarray, next_values: np.ndarray, dones: np.ndarray, n: int) -> np.ndarray:
         if next_values.shape == ():
