@@ -103,7 +103,19 @@ class Brain:
             return a_loss.numpy(), v_loss.numpy(), 0, g_norm.numpy()
 
     # region get_grads_a2c
-    @tf.function
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None, 84, 84, 4), dtype=tf.uint8),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.int32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(None,), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32),
+                                  tf.TensorSpec(shape=(), dtype=tf.float32),
+                                  ]
+                 )
     def get_grads(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
         # print(batch_size)
         with tf.GradientTape() as tape:
