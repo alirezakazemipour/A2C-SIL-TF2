@@ -7,7 +7,7 @@ def get_params():
     parser = argparse.ArgumentParser(
         description="Variable parameters based on the configuration of the machine or user's choice")
 
-    parser.add_argument("--env_name", default="PongNoFrameskip-v4", type=str, help="Name of the environment.")
+    parser.add_argument("--env_name", default="FreewayNoFrameskip-v4", type=str, help="Name of the environment.")
     parser.add_argument("--total_iterations", default=800000, type=int, help="The total number of iterations.")
     parser.add_argument("--mem_size", default=100000, type=int, help="The SIL's memory size.")
     parser.add_argument("--interval", default=1500, type=int,
@@ -26,7 +26,7 @@ def get_params():
     default_params = {"state_shape": (84, 84, 4),
                       "lr": 2.5e-4,
                       "alpha": 0.6,
-                      "beta": 0.4,
+                      "beta": 0.1,
                       "gamma": 0.99,
                       "ent_coeff": 0.01,
                       "critic_coeff": 0.5,

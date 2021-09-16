@@ -102,7 +102,7 @@ class Brain:
             self.memory.update_priorities(indices, advs * masks + 1e-6)
             return a_loss.numpy(), v_loss.numpy(), 0, g_norm.numpy()
 
-    # region get_grads_a2c
+    # region get_grads
     @tf.function(input_signature=[tf.TensorSpec(shape=(None, 84, 84, 4), dtype=tf.uint8),
                                   tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
                                   tf.TensorSpec(shape=(None, 256), dtype=tf.float32),
