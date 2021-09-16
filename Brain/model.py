@@ -2,7 +2,6 @@ from abc import ABC
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense,LSTMCell
 from tensorflow_probability.python.distributions import Categorical
-import tensorflow as tf
 
 
 class NN(Model, ABC):

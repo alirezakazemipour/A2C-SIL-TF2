@@ -28,8 +28,8 @@ class Worker(Process):
     def run(self):
         print(f"W{self.id}: started.")
         state = self.reset()
-        hx = np.zeros((1, 256))
-        cx = np.zeros((1, 256))
+        hx = np.zeros((1, 256), dtype=np.float32)
+        cx = np.zeros((1, 256), dtype=np.float32)
         while True:
             self.conn.send((state, hx, cx))
             action, value, next_hx, next_cx = self.conn.recv()
@@ -50,5 +50,5 @@ class Worker(Process):
                 self.conn.send(self.episode_buffer)
                 self.episode_buffer = []
                 state = self.reset()
-                hx = np.zeros((1, 256))
-                cx = np.zeros((1, 256))
+                hx = np.zeros((1, 256), dtype=np.float32)
+                cx = np.zeros((1, 256), dtype=np.float32)
