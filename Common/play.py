@@ -18,19 +18,21 @@ class Play:
             stacked_states = stack_states(stacked_states, s, True)
             episode_reward = 0
             clipped_ep_reward = 0
-            # x = input("Push any button to proceed...")
+            hx, cx = np.zeros((1, 256), dtype=np.float32), np.zeros((1, 256), dtype=np.float32)
             for _ in range(self.env.spec.max_episode_steps):
-                action, _ = self.agent.get_actions_and_values(stacked_states)
+                action, _, next_hx, next_cx = self.agent.get_actions_and_values(stacked_states, hx, cx)
                 s_, r, done, info = self.env.step(action)
                 episode_reward += r
                 clipped_ep_reward += np.sign(r)
                 if done :
                     break
                 stacked_states = stack_states(stacked_states, s_, False)
+                hx = next_hx
+                cx = next_cx
                 self.env.render()
                 time.sleep(0.01)
-            print(f"episode reward:{episode_reward:.3f}| "
-                  f"clipped episode reward:{clipped_ep_reward:.3f}")
+            print(f"episode reward:{episode_reward}| "
+                  f"clipped episode reward:{clipped_ep_reward}")
             mean_ep_reward.append(episode_reward)
             self.env.close()
-        print(f"Mean episode reward:{sum(mean_ep_reward) / len(mean_ep_reward):0.3f}")
+        print(f"Mean episode reward:{sum(mean_ep_reward) / len(mean_ep_reward):0.2f}")
