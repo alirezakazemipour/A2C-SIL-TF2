@@ -10,7 +10,7 @@ class Brain:
         self.config = config
         tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
-        self.policy.build(([(None, *self.config["state_shape"]), (None, 256), (None, 256)]))
+        self.policy.build([(None, *self.config["state_shape"]), (None, 256), (None, 256)])
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
@@ -67,8 +67,8 @@ class Brain:
                                                             actions,
                                                             returns,
                                                             advs,
-                                                            weights=np.ones(batch_size),
-                                                            masks=np.ones(batch_size),
+                                                            weights=np.ones(batch_size, dtype=np.float32),
+                                                            masks=np.ones(batch_size, dtype=np.float32),
                                                             batch_size=batch_size,
                                                             critic_coeff=self.config["critic_coeff"],
                                                             ent_coeff=self.config["ent_coeff"],
@@ -83,7 +83,7 @@ class Brain:
             return 0, 0, 0, 0
         batch, weights, indices = self.memory.sample(self.config["sil_batch_size"], beta)
         states, hxs, cxs, actions, returns, advs = self.unpack_batch(batch)
-        masks = (advs >= 0).astype("float32")
+        masks = advs >= 0
         batch_size = np.sum(masks)
         if batch_size > 64:
             a_loss, v_loss, ent, g_norm, grads = self.get_grads(states,

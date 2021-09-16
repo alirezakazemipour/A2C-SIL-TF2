@@ -1,10 +1,11 @@
 from abc import ABC
+from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense,LSTMCell
 from tensorflow_probability.python.distributions import Categorical
 import tensorflow as tf
 
 
-class NN(tf.keras.Model, ABC):
+class NN(Model, ABC):
     #  https://github.com/openai/baselines/blob/master/baselines/ppo1/cnn_policy.py
 
     def __init__(self, n_actions):
@@ -18,7 +19,7 @@ class NN(tf.keras.Model, ABC):
         self.value = Dense(units=1, name="value_layer")
         self.logits = Dense(units=self.n_actions)
 
-    def __call__(self, inputs, training=None, mask=None):
+    def call(self, inputs, training=None, mask=None):
         x, hx, cx = inputs
         x = x / 255
         x = self.conv1(x)

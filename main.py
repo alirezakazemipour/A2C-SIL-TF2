@@ -102,7 +102,7 @@ if __name__ == '__main__':
             training_logs = brain.train_a2c(np.concatenate(total_states),
                                             np.concatenate(total_hxs),
                                             np.concatenate(total_cxs),
-                                            total_actions,
+                                            np.concatenate(total_actions),
                                             np.sign(total_rewards),
                                             total_dones,
                                             total_values,
