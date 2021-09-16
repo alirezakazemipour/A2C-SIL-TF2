@@ -10,8 +10,8 @@ class Brain:
         self.config = config
         tf.random.set_seed(self.config["seed"])
         self.policy = NN(self.config["n_actions"])
-        self.policy([tf.zeros((1, *self.config["state_shape"])), tf.zeros((1, 256)), tf.zeros((1, 256))])
-        self.optimizer = tf.optimizers.Adam(learning_rate=self.config["lr"])
+        self.policy.build(([(None, *self.config["state_shape"]), (None, 256), (None, 256)]))
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.config["lr"])
         self.memory = ReplayMemory(self.config["mem_size"], self.config["alpha"], seed=self.config["seed"])
 
     def extract_rewards(self, *x):
@@ -50,10 +50,7 @@ class Brain:
     def get_actions_and_values(self, state, hx, cx, batch=False):
         if not batch:
             state = np.expand_dims(state, 0)
-        logits, v, hx, cx = self.feedforward_model(tf.constant(state),
-                                                   tf.constant(hx, dtype=tf.float32),
-                                                   tf.constant(cx, dtype=tf.float32)
-                                                   )
+        logits, v, hx, cx = self.feedforward_model(state, hx, cx)
         action = tf.random.categorical(logits, num_samples=1)
         return action.numpy().squeeze(), v.numpy().squeeze(), hx.numpy(), cx.numpy()
 
@@ -61,27 +58,21 @@ class Brain:
     def train_a2c(self, states, hxs, cxs, actions, rewards, dones, values, next_values):
         returns = self.get_returns(rewards, next_values, dones, n=self.config["n_workers"])
         values = np.hstack(values)
-        advs = (returns - values).astype(np.float32)
+        advs = returns - values
 
-        a_loss, v_loss, ent, g_norm, grads = self.get_grads_a2c(tf.constant(states),
-                                                                tf.constant(hxs, dtype=tf.float32),
-                                                                tf.constant(cxs, dtype=tf.float32),
-                                                                tf.constant(actions),
-                                                                tf.constant(returns),
-                                                                tf.constant(advs),
-                                                                weights=tf.constant(np.ones(actions.shape[0]),
-                                                                                    dtype=tf.float32),
-                                                                masks=tf.constant(np.ones(actions.shape[0]),
-                                                                                  dtype=tf.float32),
-                                                                batch_size=tf.constant(
-                                                                    self.config["rollout_length"] * self.config[
-                                                                        "n_workers"],
-                                                                    dtype=tf.float32),
-                                                                critic_coeff=tf.constant(self.config["critic_coeff"],
-                                                                                         dtype=tf.float32),
-                                                                ent_coeff=tf.constant(self.config["ent_coeff"],
-                                                                                      dtype=tf.float32)
-                                                                )
+        batch_size = self.config["rollout_length"] * self.config["n_workers"]
+        a_loss, v_loss, ent, g_norm, grads = self.get_grads(states,
+                                                            hxs,
+                                                            cxs,
+                                                            actions,
+                                                            returns,
+                                                            advs,
+                                                            weights=np.ones(batch_size),
+                                                            masks=np.ones(batch_size),
+                                                            batch_size=batch_size,
+                                                            critic_coeff=self.config["critic_coeff"],
+                                                            ent_coeff=self.config["ent_coeff"],
+                                                            )
         self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
         return a_loss.numpy(), v_loss.numpy(), ent.numpy(), g_norm.numpy(), explained_variance(values, returns)
 
@@ -94,35 +85,32 @@ class Brain:
         states, hxs, cxs, actions, returns, advs = self.unpack_batch(batch)
         masks = (advs >= 0).astype("float32")
         batch_size = np.sum(masks)
-        max_nlog = 5 * np.ones(self.config["sil_batch_size"])
-        if batch_size != 0:
-            a_loss, v_loss, ent, g_norm, grads = self.get_grads_sil(tf.constant(states),
-                                                                    tf.constant(hxs, dtype=tf.float32),
-                                                                    tf.constant(cxs, dtype=tf.float32),
-                                                                    tf.constant(actions),
-                                                                    tf.constant(returns),
-                                                                    tf.constant(advs),
-                                                                    weights=tf.constant(weights),
-                                                                    masks=tf.constant(masks),
-                                                                    batch_size=tf.constant(batch_size,
-                                                                                           dtype=tf.float32),
-                                                                    critic_coeff=tf.constant(self.config["w_vloss"],
-                                                                                             dtype=tf.float32),
-                                                                    max_nlog=tf.constant(max_nlog, dtype=tf.float32)
-                                                                    )
+        if batch_size > 64:
+            a_loss, v_loss, ent, g_norm, grads = self.get_grads(states,
+                                                                hxs,
+                                                                cxs,
+                                                                actions,
+                                                                returns,
+                                                                advs,
+                                                                weights=weights,
+                                                                masks=masks,
+                                                                batch_size=batch_size,
+                                                                critic_coeff=self.config["w_vloss"],
+                                                                ent_coeff=0,
+                                                                )
             self.optimizer.apply_gradients(zip(grads, self.policy.trainable_variables))
             self.memory.update_priorities(indices, advs * masks + 1e-6)
             return a_loss.numpy(), v_loss.numpy(), 0, g_norm.numpy()
 
     # region get_grads_a2c
     @tf.function
-    def get_grads_a2c(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
+    def get_grads(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, ent_coeff):
         # print(batch_size)
         with tf.GradientTape() as tape:
             dist, value, *_ = self.policy((state, hx, cx))
             entropy = tf.reduce_sum(dist.entropy() * weights * masks) / batch_size
             log_prob = dist.log_prob(action)
-            actor_loss = -tf.reduce_sum(log_prob * adv * weights) / batch_size
+            actor_loss = -tf.reduce_sum(log_prob * adv * weights * masks) / batch_size
             critic_loss = tf.reduce_sum(
                 0.5 * tf.square(q_value - tf.squeeze(value, axis=-1)) * weights * masks) / batch_size
             total_loss = actor_loss + critic_coeff * critic_loss - ent_coeff * entropy
@@ -133,26 +121,6 @@ class Brain:
         return actor_loss, critic_loss, entropy, grad_norm, grads
 
     # endregion
-
-    @tf.function
-    def get_grads_sil(self, state, hx, cx, action, q_value, adv, weights, masks, batch_size, critic_coeff, max_nlog):
-        # print(batch_size)
-        with tf.GradientTape() as tape:
-            dist, value, *_ = self.policy((state, hx, cx))
-            # entropy = tf.reduce_sum(dist.entropy() * weights * masks) / batch_size
-            log_prob = dist.log_prob(action)
-            clipped_log_prob = tf.minimum(-log_prob, max_nlog)
-            clipped_adv = tf.clip_by_value(adv, 0.0, 1)
-            actor_loss = -tf.reduce_sum(clipped_log_prob * clipped_adv * weights * masks) / batch_size
-            delta = tf.clip_by_value(tf.squeeze(value, axis=-1) - q_value, -1, 0)
-            critic_loss = tf.reduce_sum(
-                tf.stop_gradient(delta) * tf.squeeze(value, axis=-1) * weights * masks) / batch_size
-            total_loss = actor_loss + critic_coeff * critic_loss  # - ent_coeff * entropy
-
-        grads = tape.gradient(total_loss, self.policy.trainable_variables)
-        grads, grad_norm = tf.clip_by_global_norm(grads, self.config["max_grad_norm"])
-
-        return actor_loss, critic_loss, 0, grad_norm, grads
 
     def get_returns(self, rewards: np.ndarray, next_values: np.ndarray, dones: np.ndarray, n: int) -> np.ndarray:
         if next_values.shape == ():

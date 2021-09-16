@@ -49,12 +49,12 @@ if __name__ == '__main__':
         rollout_base_shape = params["n_workers"], params["rollout_length"]
 
         total_states = np.zeros(rollout_base_shape + params["state_shape"], dtype=np.uint8)
-        total_hxs = np.zeros(rollout_base_shape + (256,))
-        total_cxs = np.zeros(rollout_base_shape + (256,))
-        total_actions = np.zeros(rollout_base_shape, dtype=np.uint8)
+        total_hxs = np.zeros(rollout_base_shape + (256,), dtype=np.float32)
+        total_cxs = np.zeros(rollout_base_shape + (256,), dtype=np.float32)
+        total_actions = np.zeros(rollout_base_shape, dtype=np.int32)
         total_rewards = np.zeros(rollout_base_shape)
         total_dones = np.zeros(rollout_base_shape, dtype=np.bool)
-        total_values = np.zeros(rollout_base_shape)
+        total_values = np.zeros(rollout_base_shape, dtype=np.float32)
         next_states = np.zeros((rollout_base_shape[0],) + params["state_shape"], dtype=np.uint8)
         next_hxs = np.zeros((rollout_base_shape[0],) + (256,), dtype=np.uint8)
         next_cxs = np.zeros((rollout_base_shape[0],) + (256,), dtype=np.uint8)
@@ -102,7 +102,7 @@ if __name__ == '__main__':
             training_logs = brain.train_a2c(np.concatenate(total_states),
                                             np.concatenate(total_hxs),
                                             np.concatenate(total_cxs),
-                                            np.concatenate(total_actions).astype(np.int64),
+                                            total_actions,
                                             np.sign(total_rewards),
                                             total_dones,
                                             total_values,

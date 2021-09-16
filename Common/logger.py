@@ -127,9 +127,7 @@ class Logger:
                           if not isinstance(self.running_last_10_r, np.ndarray) else self.running_last_10_r[0],
                           "running_training_logs": list(self.running_training_logs)
                           }
-
-        # checkpoint = tf.train.Checkpoint(model=self.brain.policy)
-        # checkpoint.save(self.brain.policy, "Models/" + self.weight_dir + "/weights")
+        self.brain.policy.save_weights("Models/" + self.weight_dir + "/weights.h5", save_format="h5")
         with open("Models/" + self.weight_dir + "/stats.json", "w") as f:
             f.write(json.dumps(stats_to_write))
             f.flush()
@@ -142,8 +140,8 @@ class Logger:
         model_dir.sort()
         self.weight_dir = model_dir[-1].split(os.sep)[-1]
 
-        # checkpoint = tf.train.Checkpoint(model=self.brain.policy)
-        # checkpoint.restore(model_dir[-1] + "/weights")
+        self.brain.policy.build((None, *self.config["n_states"]))
+        self.brain.policy.load_weights(model_dir[-1] + "/weights.h5")
         with open(model_dir[-1] + "/stats.json", "r") as f:
             stats = json.load(f)
         self.running_last_10_r = stats["running_last_10_r"]
