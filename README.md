@@ -24,7 +24,7 @@ This repository follows the same procedure of the paper and produced results are
   <img src="Results/Plots/Freeway/Running_last_10_Reward.svg">
 </p>  
 
-Rest of the training plots are at [the end](#Results%20(Cont'd)) of the current Readme file.
+Rest of the training plots are at [the end](#results-contd) of the current Readme file.
 
 
 
