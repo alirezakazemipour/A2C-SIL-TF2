@@ -26,7 +26,7 @@ def get_params():
     default_params = {"state_shape": (84, 84, 4),
                       "lr": 2.5e-4,
                       "alpha": 0.6,
-                      "beta": 0.1,
+                      "beta": 0.4,
                       "gamma": 0.99,
                       "ent_coeff": 0.01,
                       "critic_coeff": 0.5,

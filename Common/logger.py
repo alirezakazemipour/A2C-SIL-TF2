@@ -8,7 +8,6 @@ import json
 import psutil
 import sys
 import math
-import tensorflow as tf
 
 
 class Logger:

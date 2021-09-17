@@ -9,6 +9,9 @@ class Brain:
     def __init__(self, **config):
         self.config = config
         tf.random.set_seed(self.config["seed"])
+        # tf.random.set_seed() does not guarantee reproducibility on GPUs. Why? checkout:
+        # https://github.com/ageron/handson-ml/blob/master/extra_tensorflow_reproducibility.ipynb
+        # https://www.twosigma.com/articles/a-workaround-for-non-determinism-in-tensorflow/
         self.policy = NN(self.config["n_actions"])
         self.policy.build([(None, *self.config["state_shape"]), (None, 256), (None, 256)])
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.config["lr"])
