@@ -93,6 +93,52 @@ memory size| 1e+5
 - tensorflow_probability == 0.13.0
 - tqdm == 4.50.0
 
+## Usage
+
+### How To Run
+```bash
+usage: main.py [-h] [--env_name ENV_NAME]
+               [--total_iterations TOTAL_ITERATIONS] [--mem_size MEM_SIZE]
+               [--interval INTERVAL] [--do_test] [--render]
+               [--train_from_scratch]
+
+Variable parameters based on the configuration of the machine or user's choice
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --env_name ENV_NAME   Name of the environment.
+  --total_iterations TOTAL_ITERATIONS The total number of iterations.
+  --mem_size MEM_SIZE   The SIL's memory size.
+  --interval INTERVAL   The interval specifies how often different parameters should be saved and printed, counted by iterations.
+  --do_test             The flag determines whether to train the agent or play with it.
+  --render              The flag determines whether to render each agent or not.
+  --train_from_scratch  The flag determines whether to train from scratch or continue previous tries.
+```
+- **In order to train the agent with default arguments, execute the following command**:
+```shell
+python3 main.py --train_from_scratch
+```
+- **If you want to keep training your previous run, execute the following (remove `--train_from_scratch` flag from previous command):**
+```shell
+python3 main.py
+```
+### Pre-Trained Weights
+- There are pre-trained weights of the agents that were shown in the [Results](#Results)  section playing, if you want to test them by yourself, please do the following:
+1. Choose your desired environments' weights from _Results/Weights/env_name/*_
+2. Create a folder named _Models_  in the root directory of the project and **make sure it is empty**.
+3. Create another folder with an arbitrary name inside _Models_ folder. For example:  
+```bash
+mkdir Models/ Models/temp_folder
+```
+4. Put your `weights.h5` and `stats.json` files in your _temp_folder_.
+5. Run above commands and use `--do_test` flag:  
+```shell
+python3 main.py --do_test
+```
+## Tested Environments
+- [x] PongNoFrameskip-v4
+- [x] FreewayNoFrameskip-v4
+- [ ] MontezumaRevengeNoFrameskip-v4
 
 
 

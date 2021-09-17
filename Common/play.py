@@ -1,10 +1,11 @@
 import time
 from .utils import *
+import time
 
 
 class Play:
     def __init__(self, env, agent, max_episode=5):
-        self.env = make_atari(env, episodic_life=False)
+        self.env = make_atari(env, episodic_life=False, seed=int(time.time()))
         self.env = gym.wrappers.Monitor(self.env, "./Vid", video_callable=lambda episode_id: True, force=True)
         self.max_episode = max_episode
         self.agent = agent
