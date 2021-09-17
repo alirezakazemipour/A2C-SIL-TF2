@@ -23,7 +23,7 @@ This repository follows the same procedure of the paper and produced results are
 </p>  
 
 > X-axis corresponds episode numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the value of Bias Correction for Prioritized Experience Replay
 
 Rest of the training plots are at [the end](#results-contd) of the current Readme file.
 
@@ -136,16 +136,65 @@ mkdir Models/ Models/temp_folder
 python3 main.py --do_test
 ```
 ## Tested Environments
+
 - [x] PongNoFrameskip-v4
 - [x] FreewayNoFrameskip-v4
 - [ ] MontezumaRevengeNoFrameskip-v4
 
+## Structure
 
+```bash
+.
+├── Brain
+│   ├── brain.py
+│   ├── experience_replay.py
+│   ├── __init__.py
+│   ├── model.py
+│   └── segment_tree.py
+├── Common
+│   ├── config.py
+│   ├── __init__.py
+│   ├── logger.py
+│   ├── play.py
+│   ├── runner.py
+│   └── utils.py
+├── LICENSE
+├── main.py
+├── README.md
+├── requirements.txt
+└── Results
+    ├── Gifs
+    │   └── Freeway
+    │       └── Freeway.gif
+    ├── Plots
+    │   └── Freeway
+    │       ├── Max_Episode_Reward.svg
+    │       ├── Running_Entropy.svg
+    │       ├── Running_Explained_Variance.svg
+    │       ├── Running_Grad_Norm.svg
+    │       ├── Running_last_10_Reward.svg
+    │       ├── Running_PG_Loss.svg
+    │       ├── Running_Total_Episode_Reward.svg
+    │       └── Running_Value_Loss.svg
+    └── Weights
+        └── Freeway
+            ├── stats.json
+            └── weights.h5
+```
+1. _Agent_ package includes the neural network structure, the core of agent decision making paradiagm  and the agent's experience replay.
+2. _Common_ includes minor codes that are common for most RL codes and do auxiliary tasks like logging, wrapping Atari environments and... .
+3. _Results_ is the directory that Gifs,  plot images of the current Readme file  and pre-trained weights have been stored at.
 
+## References
 
+1. [_Self-Imitation Learning_, Oh, et al., 2018](https://arxiv.org/abs/1806.05635)
+2.  [_Asynchronous Methods for Deep Reinforcement Learning_, Mnih et al., 2016](https://arxiv.org/abs/1602.01783)
 
+## Acknowledgement
 
-
+1. [ self-imitation-learning](https://github.com/junhyukoh/self-imitation-learning) by [@junhyukoh](https://github.com/junhyukoh)
+2. [self-imitation-learning-pytorch](https://github.com/TianhongDai/self-imitation-learning-pytorch) by [@TianhongDai ](https://github.com/TianhongDai)
+3. [a2c](https://github.com/openai/baselines/tree/master/baselines/a2c) by [@OpenAI ](https://github.com/openai)
 
 ## Results (Cont'd)
 
@@ -154,46 +203,46 @@ python3 main.py --do_test
 </p>  
 
 > X-axis corresponds episode numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the  value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_Total_Episode_Reward.svg">
 </p>  
 
 > X-axis corresponds episode numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for  the value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_Explained_Variance.svg">
 </p>  
 
 > X-axis corresponds iteration numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the  value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_Grad_Norm.svg">
 </p>  
 
 > X-axis corresponds iteration numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the  value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_Entropy.svg">
 </p>  
 
 > X-axis corresponds iteration numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_PG_Loss.svg">
 </p>  
 
 > X-axis corresponds iteration numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the value of Bias Correction for Prioritized Experience Replay
 
 <p align="center">
   <img src="Results/Plots/Freeway/Running_Value_Loss.svg">
 </p>  
 
 > X-axis corresponds iteration numbers
-> Blue curve has 0.1 for  value of Bias Correction for Prioritized Experience Replay
+> Blue curve has 0.1 for the value of Bias Correction for Prioritized Experience Replay
