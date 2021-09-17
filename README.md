@@ -4,11 +4,11 @@
 
 This repository is a TensorFlow2 implementation of **Self-Imitation Learning (SIL)** with **Synchronous Advantage Actor-Critic (A2C)** as the backbone of action-selection policy.
 
-In short, the SIL builds on the intuition that good past experiences should be exploited more and consequently driving to deep exploration. Thus, the SIL is responsible to improve exploitation of good past decisions and is an auxiliary module that can be added to any action-selection policy.
+In short, the SIL builds on the intuition that good past experiences should be exploited more and consequently driving to deep exploration. Thus, the SIL is responsible to improve the exploitation of good past decisions and is an auxiliary module that can be added to any action-selection policy.
 
-The paper "Self-Imitation Learning" by Oh et al, combines the SIL with the synchronous version of Advantage Actor-Critic method and showed that the SIL is applicable to any other Actor-Critic methods like Proximal Policy Optimization (PPO).
+The paper "Self-Imitation Learning" by Oh et al, combines the SIL with the synchronous version of the Advantage Actor-Critic method and showed that the SIL is applicable to any other Actor-Critic methods like Proximal Policy Optimization (PPO).
 
-This repository follows the same procedure of the paper and produced results are obtained by combining the SIL with the A2C.
+This repository follows the same procedure as the paper and produced results are obtained by combining the SIL with the A2C.
 
 ## Demo
 
@@ -25,7 +25,7 @@ This repository follows the same procedure of the paper and produced results are
 > X-axis corresponds episode numbers
 > Blue curve has 0.1 for the value of Bias Correction for Prioritized Experience Replay
 
-Rest of the training plots are at [the end](#results-contd) of the current Readme file.
+The rest of the training plots are at [the end](#results-contd) of the current Readme file.
 
 ## Important Notes About This Code!
 
@@ -42,15 +42,15 @@ def update_buffer(self, trajectory):
     if positive_reward:
         self.add_episode(trajectory)
 ```
-This heuristic is only valid for Atari domain with its current DeepMind proposed preprocessing and decreases the generality of the SIL.  
+This heuristic is only valid for the Atari domain with its current DeepMind proposed preprocessing and decreases the generality of the SIL.  
 
 A simple example is enough to underline that the above code is **only an aid** for faster training of Atari games with a specific preprocessing on rewards and decreases the generality:
-Suppose we hand engineer the rewards of an Atari game like Pong so that we substarct a -2 from every timestep rewards. This intervention moves rewards' range from [-1, 1] to [-3, -1] without losing the expressiveness of expected optimal behavior that should be encoded within the rewards. But, the above hueristic falis on this new environment and **should be tuned again** (= loss of generality)!
+Suppose we hand engineer the rewards of an Atari game like Pong so that we subtract a -2 from every timestep reward. This intervention moves rewards' range from [-1, 1] to [-3, -1] without losing the expressiveness of expected optimal behavior that should be encoded within the rewards. But, the above heuristic fails on this new environment and **should be tuned again** (= loss of generality)!
 
-**As a result, the current code avoids appling such domain knowledge about positivity of rewards**. 
+**As a result, the current code avoids applying such domain knowledge about the positivity of rewards**. 
 
-- To speedup the training, the currect code benefits from using and LSTMCell and the lighter network architecture introduced in A3C paper instead of the larger DQN network.
-- The current code uses Adam as its optimizer and no major violation was seen during training time, thus the clippings of the Advantage function, Log Probabilities and Critic Loss of the original code (shown below) that uses RMSprop, were not required:
+- To speed up the training, the current code benefits from using and LSTMCell and the lighter network architecture introduced in the A3C paper instead of the larger DQN network.
+- The current code uses Adam as its optimizer and no major violation was seen during training time, thus the clippings of the Advantage function, Log Probabilities, and Critic Loss of the original code (shown below) that uses RMSprop, were not required:
 ``` python
 clipped_nlogp = tf.stop_gradient(tf.minimum(nlogp, self.max_nlogp) - nlogp) + nlogp
             
@@ -61,10 +61,10 @@ delta = tf.clip_by_value(v_estimate - v_target, -self.clip, 0) * mask
 >Not required.
 
 - The Learning Rate is different from the paper.
-- **One caveat of the current code is that it can not be executed on [Colab](https://colab.research.google.com/)** since there is an unknown issue that the total amount of avaialable RAM is consumed **despite lowering the replay buffer size** as much as possible, thus the whole training was done on [paperspace.com](https://www.paperspace.com/) **without any problem about the RAM or etc**.
+- **One caveat of the current code is that it can not be executed on [Colab](https://colab.research.google.com/)** since there is an unknown issue that the total amount of available RAM is consumed **despite lowering the replay buffer size** as much as possible, thus the whole training was done on [paperspace.com](https://www.paperspace.com/) **without any problem about the RAM or etc**.
 
 ## Table of Hyperparameters
->Hyperparameters used for Pong nad Freeway environments.
+>Hyperparameters used for Pong and Freeway environments.
 
 Parameter| Value
 :-----------------------:|:-----------------------:|
@@ -79,7 +79,7 @@ sil batch size | 512
 crtitc coefficient for SIL | 0.01
 entropy coefficient for SIL | 0
 num parallel workers| 8
-k (rollout length) | 80 // num parallel workers
+rollout length | 80 &div; num parallel workers
 memory size| 1e+5
 
 ## Dependencies
@@ -118,7 +118,7 @@ optional arguments:
 ```shell
 python3 main.py --train_from_scratch
 ```
-- **If you want to keep training your previous run, execute the following (remove `--train_from_scratch` flag from previous command):**
+- **If you want to keep training your previous run, execute the following (remove `--train_from_scratch` flag from the previous command):**
 ```shell
 python3 main.py
 ```
@@ -131,7 +131,7 @@ python3 main.py
 mkdir Models/ Models/temp_folder
 ```
 4. Put your `weights.h5` and `stats.json` files in your _temp_folder_.
-5. Run above commands and use `--do_test` flag:  
+5. Run the above commands and use `--do_test` flag:  
 ```shell
 python3 main.py --do_test
 ```
@@ -181,9 +181,9 @@ python3 main.py --do_test
             ├── stats.json
             └── weights.h5
 ```
-1. _Agent_ package includes the neural network structure, the core of agent decision making paradiagm  and the agent's experience replay.
+1. _Agent_ package includes the neural network structure, the core of agent decision-making paradigm, and the agent's experience replay.
 2. _Common_ includes minor codes that are common for most RL codes and do auxiliary tasks like logging, wrapping Atari environments and... .
-3. _Results_ is the directory that Gifs,  plot images of the current Readme file  and pre-trained weights have been stored at.
+3. _Results_ is the directory that Gifs,  plot images of the current Readme file, and pre-trained weights have been stored at.
 
 ## References
 
