@@ -139,7 +139,7 @@ class Logger:
         model_dir.sort()
         self.weight_dir = model_dir[-1].split(os.sep)[-1]
 
-        self.brain.policy.build([(None, *self.config["state_shape"]), (None, 256), (None, 256)])
+#         self.brain.policy.build([(None, *self.config["state_shape"]), (None, 256), (None, 256)])
         self.brain.policy.load_weights(model_dir[-1] + "/weights.h5")
         with open(model_dir[-1] + "/stats.json", "r") as f:
             stats = json.load(f)
